@@ -5,60 +5,64 @@ using System.Data;
 
 using Microsoft.EntityFrameworkCore;
 using BookStoreBackend.Models.ViewModels;
+using AutoMapper;
+using System.ComponentModel;
 
 public class AuthorRepository : IAuthorRepository
 {
     private readonly ApplicationDbContext _context;
-
-    public AuthorRepository(ApplicationDbContext context)
+    private readonly IMapper _mapper;
+    public AuthorRepository(ApplicationDbContext context, IMapper mapper)
     {
         _context = context;
+        _mapper = mapper;
     }
 
     public async Task<AuthorModel?> GetAuthorById(string id)
     {
-        return await _context.Authors
-            .FromSqlInterpolated($"EXECUTE dbo.authors_GetById {id}")
-            .AsNoTracking()
-            .FirstOrDefaultAsync();
+        return await _context.Authors.FirstOrDefaultAsync(a => a.Id == id);
     }
 
     public async Task<IEnumerable<AuthorModel>> GetAllAuthors()
     {
-        return await _context.Authors
-            .FromSqlInterpolated($"EXECUTE dbo.authors_GetAll")
-            .AsNoTracking()
-            .ToListAsync();
+        var authors= await _context.Authors
+                        .AsNoTracking()
+                        .ToListAsync();
+        if(authors != null && authors.Any())
+        {
+            return authors;
+        }
+        return Enumerable.Empty<AuthorModel>();
+    }
+    public async Task<int> GetAuthorCount()
+    {
+        return await _context.Authors.CountAsync();
     }
 
     public async Task RegisterAuthor(AuthorFullNameDto dto)
     {
-        var parameters = new[]
-        {
-            new SqlParameter("@FullName", SqlDbType.NVarChar, 100) { Value = dto.FullName },
-            new SqlParameter("@Biography", SqlDbType.NVarChar, 500) { Value = (object)dto.Biography ?? DBNull.Value },
-            new SqlParameter("@Nationality", SqlDbType.NVarChar, 50) { Value = (object)dto.Nationality ?? DBNull.Value }
-        };
-
-        await _context.Database.ExecuteSqlRawAsync("EXEC dbo.authors_Register @FullName, @Biography, @Nationality", parameters);
+        var newAuthor = _mapper.Map<AuthorModel>(dto);
+        await _context.Authors.AddAsync(newAuthor);
+        await _context.SaveChangesAsync();
     }
 
     public async Task UpdateAuthor(string id, AuthorFullNameDto updatedDto)
     {
-        var parameters = new[]
+        var author = await GetAuthorById(id);
+        if (author != null)
         {
-            new SqlParameter("@AuthorId", SqlDbType.NVarChar, 50) { Value = id },
-            new SqlParameter("@FullName", SqlDbType.NVarChar, 100) { Value = updatedDto.FullName },
-            new SqlParameter("@Biography", SqlDbType.NVarChar, 500) { Value = (object)updatedDto.Biography ?? DBNull.Value },
-            new SqlParameter("@Nationality", SqlDbType.NVarChar, 50) { Value = (object)updatedDto.Nationality ?? DBNull.Value }
-        };
-
-        await _context.Database.ExecuteSqlRawAsync("EXEC dbo.authors_Update @AuthorId, @FullName, @Biography, @Nationality", parameters);
+            _mapper.Map(updatedDto, author);
+            await _context.SaveChangesAsync();
+        } 
     }
 
     public async Task DeleteAuthor(string id)
     {
-        var parameter = new SqlParameter("@AuthorId", SqlDbType.NVarChar, 50) { Value = id };
-        await _context.Database.ExecuteSqlRawAsync("EXEC dbo.authors_Delete @AuthorId", parameter);
+        var author = await GetAuthorById(id);
+        if (author != null)
+        {
+            _context.Authors.Remove(author);
+            await _context.SaveChangesAsync();
+        }       
     }
 }

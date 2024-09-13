@@ -11,7 +11,12 @@ namespace BookStoreBackend.Models
         public string FullName { get; set; }
         public string? Biography { get; set; }
         public string? Nationality { get; set; }
-        public ICollection<BookModel>? Books { get; set; } = new List<BookModel>();
+        public ICollection<BookModel>? Books { get; set; }
+
+        public AuthorModel() {
+            Id = Guid.NewGuid().ToString();
+            Books = new List<BookModel>();
+        }
 
         public AuthorModel(string fullName) {
             Id = Guid.NewGuid().ToString();

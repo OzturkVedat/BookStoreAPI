@@ -102,7 +102,7 @@ public class AuthorController : ControllerBase
     }
 
     [HttpPost("register-author-by-fullname")]
-    public async Task<IActionResult> RegisterAuthor(AuthorFullNameDto authorDto)
+    public async Task<IActionResult> RegisterAuthorByFullName(AuthorFullNameDto authorDto)
     {
         if (!ModelState.IsValid)
         {

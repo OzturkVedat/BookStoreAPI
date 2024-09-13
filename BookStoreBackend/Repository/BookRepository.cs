@@ -4,61 +4,64 @@ using BookStoreBackend.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
+using AutoMapper;
 
 public class BookRepository : IBookRepository
 {
     private readonly ApplicationDbContext _context;
+    private readonly IMapper _mapper;
 
-    public BookRepository(ApplicationDbContext context)
+    public BookRepository(ApplicationDbContext context, IMapper mapper)
     {
         _context = context;
+        _mapper = mapper;
     }
 
     public async Task<BookModel> GetBookById(string id)
     {
-        return await _context.Books
-                             .FromSqlInterpolated($"EXECUTE dbo.books_GetById {id}")
-                             .AsNoTracking()
-                             .FirstOrDefaultAsync();
+        return await _context.Books.FirstOrDefaultAsync(b => b.Id == id);
     }
 
     public async Task<IEnumerable<BookModel>> GetAllBooks()
     {
-        return await _context.Books
-                             .FromSqlInterpolated($"EXECUTE dbo.books_GetAll")
+        var books = await _context.Books
                              .AsNoTracking()
                              .ToListAsync();
+        if (books != null && books.Any())
+        {
+            return books;
+        }
+        return Enumerable.Empty<BookModel>();
+    }
+    public async Task<int> GetBookCount()
+    {
+        return await _context.Books.CountAsync();
     }
 
     public async Task RegisterBook(BookViewModel bookDto)
     {
-        var parameters = new[]      // parameterizing to prevent sql injections
-        {
-            new SqlParameter("@Title", SqlDbType.NVarChar, 100) { Value = (object)bookDto.Title ?? DBNull.Value },
-            new SqlParameter("@Genre", SqlDbType.Int) { Value = (int)bookDto.BookGenre },
-            new SqlParameter("@Price", SqlDbType.Int) { Value = bookDto.Price },
-            new SqlParameter("@AuthorId", SqlDbType.NVarChar, 50) { Value = (object)bookDto.AuthorId ?? DBNull.Value }
-        };
-
-        await _context.Database.ExecuteSqlRawAsync("EXEC dbo.books_Register @Title, @Genre, @Price, @AuthorId", parameters);
+        var newBook = _mapper.Map<BookModel>(bookDto);
+        await _context.Books.AddAsync(newBook);
+        await _context.SaveChangesAsync();
     }
 
-    public async Task UpdateBook(string id, BookViewModel bookDto)
+    public async Task UpdateBook(string id, BookViewModel updatedDto)
     {
-        var parameters = new[]
+        var book = await GetBookById(id);
+        if (book != null)
         {
-            new SqlParameter("@BookId", SqlDbType.NVarChar, 50) { Value = id },
-            new SqlParameter("@Title", SqlDbType.NVarChar, 100) { Value = (object)bookDto.Title ?? DBNull.Value },
-            new SqlParameter("@Genre", SqlDbType.Int) { Value = (int)bookDto.BookGenre },
-            new SqlParameter("@Price", SqlDbType.Int) { Value = bookDto.Price },
-            new SqlParameter("@AuthorId", SqlDbType.NVarChar, 50) { Value = (object)bookDto.AuthorId ?? DBNull.Value }
-        };
-
-        await _context.Database.ExecuteSqlRawAsync("EXEC dbo.books_Update @BookId, @Title, @Genre, @Price, @AuthorId", parameters);
+            _mapper.Map(updatedDto, book);
+            await _context.SaveChangesAsync();
+        }
     }
 
     public async Task DeleteBook(string id)
     {
-        await _context.Database.ExecuteSqlInterpolatedAsync($"EXEC dbo.books_Delete {id}");
+        var book = await GetBookById(id);
+        if (book != null)
+        {
+            _context.Books.Remove(book);
+            await _context.SaveChangesAsync();
+        }
     }
 }
