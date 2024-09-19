@@ -23,50 +23,34 @@ public class AuthorController : ControllerBase
         {
             return BadRequest(new ErrorResult { Message = "Invalid author ID." });
         }
-
-        try
+        var author = await _authorRepository.GetAuthorById(id);
+        if (author == null)
         {
-            var author = await _authorRepository.GetAuthorById(id);
-            if (author == null)
-            {
-                return NotFound(new ErrorResult { Message = "Author not found." });
-            }
+            return NotFound(new ErrorResult { Message = "Author not found." });
+        }
 
-            return Ok(new SuccessDataResult<AuthorModel>
-            {
-                Message = "Successfully fetched the details of the author.",
-                Data = author
-            });
-        }
-        catch (Exception ex)
+        return Ok(new SuccessDataResult<AuthorModel>
         {
-            _logger.LogError(ex, "An error occurred while fetching author details.");
-            return StatusCode(500, new ErrorResult { Message = "An unexpected error occurred." });
-        }
+            Message = "Successfully fetched the details of the author.",
+            Data = author
+        });
     }
 
     [HttpGet("all-authors")]
     public async Task<IActionResult> GetAllAuthors()
     {
-        try
-        {
-            var authors = await _authorRepository.GetAllAuthors();
-            if (authors == null || !authors.Any())
-            {
-                return NotFound(new ErrorResult { Message = "No authors found." });
-            }
 
-            return Ok(new SuccessDataResult<IEnumerable<AuthorModel>>
-            {
-                Message = "Successfully fetched all authors.",
-                Data = authors
-            });
-        }
-        catch (Exception ex)
+        var authors = await _authorRepository.GetAllAuthors();
+        if (authors == null || !authors.Any())
         {
-            _logger.LogError(ex, "An error occurred while fetching authors.");
-            return StatusCode(500, new ErrorResult { Message = "An unexpected error occurred." });
+            return NotFound(new ErrorResult { Message = "No authors found." });
         }
+
+        return Ok(new SuccessDataResult<IEnumerable<AuthorModel>>
+        {
+            Message = "Successfully fetched all authors.",
+            Data = authors
+        });
     }
 
     [HttpPost("register-author")]
@@ -80,25 +64,18 @@ public class AuthorController : ControllerBase
                 Errors = ModelState.GetErrors()
             });
         }
-
-        try
+        string fullName = $"{authorDto.FirstName} {authorDto.LastName}";
+        AuthorFullNameDto dto = new AuthorFullNameDto()
         {
-            string fullName = $"{authorDto.FirstName} {authorDto.LastName}";
-            AuthorFullNameDto dto= new AuthorFullNameDto()
-            {
-                FullName = fullName,
-                Nationality= authorDto.Nationality,
-                Biography= authorDto.Biography
-            };
-            await _authorRepository.RegisterAuthor(dto);
-
+            FullName = fullName,
+            Nationality = authorDto.Nationality,
+            Biography = authorDto.Biography
+        };
+        var result = await _authorRepository.RegisterAuthor(dto);
+        if (result)
             return Ok(new SuccessResult { Message = "Author successfully registered." });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while registering the author.");
-            return StatusCode(500, new ErrorResult { Message = "An unexpected error occurred. Please try again later." });
-        }
+        else
+            return BadRequest(new ErrorResult { Message = "Failed to register the author for given inputs." });
     }
 
     [HttpPost("register-author-by-fullname")]
@@ -112,18 +89,11 @@ public class AuthorController : ControllerBase
                 Errors = ModelState.GetErrors()
             });
         }
-
-        try
-        {
-            await _authorRepository.RegisterAuthor(authorDto);
-
+        var result = await _authorRepository.RegisterAuthor(authorDto);
+        if (result)
             return Ok(new SuccessResult { Message = "Author successfully registered." });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while registering the author.");
-            return StatusCode(500, new ErrorResult { Message = "An unexpected error occurred. Please try again later." });
-        }
+        else
+            return BadRequest(new ErrorResult { Message = "Failed to register the author for given inputs." });
     }
 
     [HttpPut("update-author/{id}")]
@@ -137,17 +107,11 @@ public class AuthorController : ControllerBase
                 Errors = ModelState.GetErrors()
             });
         }
-
-        try
-        {
-            await _authorRepository.UpdateAuthor(id, authorDto);
+        var result = await _authorRepository.UpdateAuthor(id, authorDto);
+        if (result)
             return Ok(new SuccessResult { Message = "Author successfully updated." });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while updating the author.");
-            return StatusCode(500, new ErrorResult { Message = "An unexpected error occurred. Please try again later." });
-        }
+        else
+            return BadRequest(new ErrorResult { Message = "Failed to update the author for given inputs." });
     }
 
     [HttpDelete("delete-author/{id}")]
@@ -157,16 +121,10 @@ public class AuthorController : ControllerBase
         {
             return BadRequest(new ErrorResult { Message = "Invalid author ID." });
         }
-
-        try
-        {
-            await _authorRepository.DeleteAuthor(id);
+        var result = await _authorRepository.DeleteAuthor(id);
+        if (result)
             return Ok(new SuccessResult { Message = "Author successfully deleted." });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while deleting the author.");
-            return StatusCode(500, new ErrorResult { Message = "An unexpected error occurred. Please try again later." });
-        }
+        else
+            return BadRequest(new ErrorResult { Message = "Failed to delete the author record for the given ID" });
     }
 }

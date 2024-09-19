@@ -3,6 +3,7 @@ using BookStoreBackend.Models;
 using BookStoreBackend.Models.ResultModels;
 using BookStoreBackend.Models.ViewModels;
 using BookStoreBackend.Tests.Abstractions;
+using BookStoreBackend.Tests.TestUtilities;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.VisualStudio.TestPlatform.TestHost;
@@ -16,9 +17,9 @@ using System.Threading.Tasks;
 
 namespace BookStoreBackend.Tests.ControllerTests
 {
-    public class AuthorContollerFunctional : BaseFunctionalTest
+    public class AuthorContollerE2E : BaseFunctionalTest
     {
-        public AuthorContollerFunctional(FunctionalTestWebAppFactory factory) : base(factory)
+        public AuthorContollerE2E(FunctionalTestWebAppFactory factory) : base(factory)
         {
 
         }
@@ -33,8 +34,7 @@ namespace BookStoreBackend.Tests.ControllerTests
             var response = await _client.GetAsync($"/author/author-details/{authorId}");
 
             // ASSERT
-            response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
-
+            await CommonAssertions.AssertHttpNotFoundResponse( response );
         }
         [Fact]
         public async Task GetAllAuthors_ShouldReturnAll()
@@ -43,19 +43,7 @@ namespace BookStoreBackend.Tests.ControllerTests
             var response = await _client.GetAsync("/author/all-authors");
 
             // ASSERT
-            response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-            var jsonString = await response.Content.ReadAsStringAsync();
-
-            var apiResponse = JsonSerializer.Deserialize<SuccessDataResult<List<AuthorModel>>>(jsonString, new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase   // deserialize
-            });
-
-            apiResponse.Should().NotBeNull();
-            apiResponse.Success.Should().BeTrue();
-            apiResponse.Data.Should().NotBeNull();
-            apiResponse.Data.Should().NotBeEmpty();
-            apiResponse.Data.Count.Should().BeGreaterThan(1);
+            await CommonAssertions.AssertAndDeserializeHttpOkResponse(response);
         }
 
         [Fact]
@@ -73,11 +61,7 @@ namespace BookStoreBackend.Tests.ControllerTests
             var response = await _client.PostAsJsonAsync("/author/register-author-by-fullname", newAuthor);
 
             // ASSERT
-            response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-
-            var result = await response.Content.ReadFromJsonAsync<SuccessResult>();
-            result.Should().NotBeNull();
-            result.Message.Should().Be("Author successfully registered.");
+            await CommonAssertions.AssertHttpOkResponse(response);
         }
         [Fact]
         public async Task UpdateAuthor_ShouldReturnSuccess()
@@ -96,10 +80,7 @@ namespace BookStoreBackend.Tests.ControllerTests
             var updatedAuthorResponse = await _client.GetAsync($"/author/author-details/{authorId}");
 
             // ASSERT
-            response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-
-            var result = await response.Content.ReadFromJsonAsync<SuccessResult>();
-            result.Should().NotBeNull();
+            await CommonAssertions.AssertHttpOkResponse(response );
 
             var updatedAuthor = await updatedAuthorResponse.Content.ReadFromJsonAsync<SuccessDataResult<AuthorModel>>();
             updatedAuthor.Should().NotBeNull();
@@ -121,9 +102,7 @@ namespace BookStoreBackend.Tests.ControllerTests
             var authorExist = await authorCheck.Content.ReadFromJsonAsync<SuccessDataResult<AuthorModel>>();
             authorCheck.Should().NotBeNull();
 
-            deleteResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-            var authorNotExist = deleteResponse.Content.ReadFromJsonAsync<SuccessResult>();
-            authorNotExist.Should().NotBeNull();
+            await CommonAssertions.AssertHttpOkResponse(deleteResponse );
 
         }
     }

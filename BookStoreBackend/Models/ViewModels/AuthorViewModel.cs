@@ -12,7 +12,7 @@ namespace BookStoreBackend.Models.ViewModels
         [StringLength(50, ErrorMessage = "Last name cannot exceed 50 characters.")]
         public string LastName { get; set; }
 
-        [StringLength(500, ErrorMessage = "Biography cannot exceed 500 characters.")]
+        [StringLength(200, ErrorMessage = "Biography cannot exceed 200 characters.")]
         public string? Biography { get; set; }
 
         [StringLength(50, ErrorMessage = "Nationality cannot exceed 50 characters.")]

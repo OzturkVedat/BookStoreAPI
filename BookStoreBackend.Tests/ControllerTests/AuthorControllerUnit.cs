@@ -1,50 +1,61 @@
-﻿using FakeItEasy;
+﻿using BookStoreBackend.Models;
+using BookStoreBackend.Models.ResultModels;
+using BookStoreBackend.Models.ViewModels;
+using BookStoreBackend.Tests.TestUtilities;
+
+using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Mvc;
+using FakeItEasy;
 using Xunit;
 using FluentAssertions;
 using AutoMapper;
-using Microsoft.Extensions.Logging;
-using BookStoreBackend.Models;
-using Microsoft.AspNetCore.Mvc;
-using BookStoreBackend.Models.ResultModels;
-using BookStoreBackend.Models.ViewModels;
 
 namespace BookStoreBackend.Tests.ControllerTests
 {
     public class AuthorControllerUnit
     {
         private readonly IAuthorRepository _fakeAuthorRepo;
-        private readonly ILogger<AuthorController> _logger;
+        private readonly ILogger<AuthorController> _fakeLogger;
         private readonly AuthorController _authorController;
         public AuthorControllerUnit()      // constructor for unit test
         {
             _fakeAuthorRepo = A.Fake<IAuthorRepository>();      // mocking (or faking)
-            _logger = A.Fake<ILogger<AuthorController>>();
-            _authorController = new AuthorController(_logger, _fakeAuthorRepo);
+            _fakeLogger = A.Fake<ILogger<AuthorController>>();
+            _authorController = new AuthorController(_fakeLogger, _fakeAuthorRepo);
         }
         [Fact]
-        public async Task GetAuthorById_ReturnsOk()
+        public async Task GetAuthorById_ReturnsAuthor_WhenExists()
         {
             // ARRANGE
             var authorId = "2";
-            var author = new AuthorModel
+            var expectedAuthor = new AuthorModel
             {
                 Id = "2",
                 FullName = "Stephen King",
                 Nationality = "American",
                 Biography = "American author.."
             };
-            A.CallTo(() => _fakeAuthorRepo.GetAuthorById(authorId)).Returns(Task.FromResult(author));
+            A.CallTo(() => _fakeAuthorRepo.GetAuthorById(authorId)).Returns(Task.FromResult(expectedAuthor));
 
             // ACT
             var result = await _authorController.GetAuthorById(authorId);
 
             // ASSERT
-            result.Should().NotBeNull();
-            result.Should().BeOfType<OkObjectResult>()
-                .Which.Value.Should().BeOfType<SuccessDataResult<AuthorModel>>();
+            CommonAssertions.AssertOkDataResult<AuthorModel>(result, expectedAuthor);
 
-            var authorResult = (result as OkObjectResult).Value as SuccessDataResult<AuthorModel>;
-            authorResult.Data.Should().BeEquivalentTo(author);
+        }
+
+        [Fact]
+        public async Task GetAuthorById_ReturnsBadRequest_WhenInvalidId()
+        {
+            // ARRANGE
+            string invalidId = "";
+
+            //ACT
+            var result = await _authorController.GetAuthorById(invalidId);
+
+            // ASSERT
+            CommonAssertions.AssertBadRequestResult(result);
 
         }
 
@@ -60,13 +71,11 @@ namespace BookStoreBackend.Tests.ControllerTests
             var result = await _authorController.GetAuthorById(authorId);
 
             // ASSERT
-            result.Should().BeOfType<NotFoundObjectResult>()
-                .Which.Value.Should().BeOfType<ErrorResult>()
-                .Which.Message.Should().Be("Author not found.");
+            CommonAssertions.AssertNotFoundResult(result);
         }
 
         [Fact]
-        public async Task GetAllAuthors_ShouldReturnOk_WhenExist()
+        public async Task GetAllAuthors_ReturnsAuthors_WhenExist()
         {
             // ARRANGE
             var authors = new List<AuthorModel>
@@ -82,45 +91,65 @@ namespace BookStoreBackend.Tests.ControllerTests
             var result = await _authorController.GetAllAuthors();
 
             // ASSERT
-            result.Should().BeOfType<OkObjectResult>()
-                .Which.Value.Should().BeOfType<SuccessDataResult<IEnumerable<AuthorModel>>>()
-                .Which.Data.Should().Contain(authors);
-            (result as OkObjectResult).Value.Should().BeOfType<SuccessDataResult<IEnumerable<AuthorModel>>>()
-                .Which.Message.Should().Be("Successfully fetched all authors.");
+            CommonAssertions.AssertOkDataResult<IEnumerable<AuthorModel>>(result, authors);
         }
 
         [Fact]
-        public async Task RegisterAuthor_ShouldReturnOk_WhenValidData()
+        public async Task GetAllAuthors_ReturnsNotFound_WhenNone()
         {
             // ARRANGE
-            var authorFnDto = new AuthorFullNameDto
+            var authorsEmpty = new List<AuthorModel>();
+            var authorsNull = null as List<AuthorModel>;
+
+            // ACT & ASSERT
+            A.CallTo(() => _fakeAuthorRepo.GetAllAuthors())
+                .Returns(Task.FromResult<IEnumerable<AuthorModel>>(authorsEmpty));
+
+            var resultEmpty = await _authorController.GetAllAuthors();
+
+            CommonAssertions.AssertNotFoundResult(resultEmpty);
+
+            A.CallTo(() => _fakeAuthorRepo.GetAllAuthors())
+                .Returns(Task.FromResult<IEnumerable<AuthorModel>>(authorsNull));
+
+            var resultNull = await _authorController.GetAllAuthors();
+
+            CommonAssertions.AssertNotFoundResult(resultNull);
+        }
+
+        [Fact]
+        public async Task RegisterAuthor_ReturnsSuccess_WhenValidDto()
+        {
+            // ARRANGE
+            var authorDto = new AuthorFullNameDto
             {
                 FullName = "Aldous Huxley",
                 Nationality = "English",
-                Biography = "English writer and philospher..."
+                Biography = "English writer and philosopher..."
             };
-
-            var authorViewModel = new AuthorViewModel
-            {
-                FirstName = "George R.R.",
-                LastName = "Martin",
-                Nationality = "American",
-                Biography = "American novel writer..."
-            };
+            A.CallTo(() => _fakeAuthorRepo.RegisterAuthor(authorDto)).Returns(true);
 
             // ACT
-            var fnResult = await _authorController.RegisterAuthorByFullName(authorFnDto);
-            var vmResult = await _authorController.RegisterAuthor(authorViewModel);
+            var fnResult = await _authorController.RegisterAuthorByFullName(authorDto);
 
             // ASSERT
-            fnResult.Should().BeOfType<OkObjectResult>()
-              .Which.Value.Should().BeOfType<SuccessResult>();
-
-            vmResult.Should().BeOfType<OkObjectResult>()
-              .Which.Value.Should().BeOfType<SuccessResult>();
+            CommonAssertions.AssertOkResult(fnResult);
         }
         [Fact]
-        public async Task UpdateAuthor_ShouldReturnOk_WhenValidData()
+        public async Task RegisterAuthor_ReturnsBadRequest_WhenInvalidDto()
+        {
+            // ARRANGE
+            _authorController.ModelState.AddModelError("FullName", "Full name is required.");
+
+            // ACT
+            var result = await _authorController.RegisterAuthorByFullName(new AuthorFullNameDto());
+
+            // ASSERT
+            CommonAssertions.AssertBadRequestDataResult(result);
+        }
+
+        [Fact]
+        public async Task UpdateAuthor_ReturnsSuccess_WhenValidData()
         {
             // ARRANGE
             var authorId = "1";
@@ -130,29 +159,32 @@ namespace BookStoreBackend.Tests.ControllerTests
                 Nationality = "Russia",
                 Biography = "Writer and ..."
             };
-            A.CallTo(() => _fakeAuthorRepo.UpdateAuthor(authorId, updatedDto)).Returns(Task.CompletedTask);
+            A.CallTo(() => _fakeAuthorRepo.UpdateAuthor(authorId, updatedDto)).Returns(true);
 
             // ACT
             var result = await _authorController.UpdateAuthor(authorId, updatedDto);
 
             // ASSERT
-            result.Should().BeOfType<OkObjectResult>()
-                .Which.Value.Should().BeOfType<SuccessResult>();
+            CommonAssertions.AssertOkResult(result);
+        }
+        [Fact]
+        public async Task UpdateAuthor_ReturnsBadRequest_WhenInvalidDto()
+        {
+            // ARRANGE
+            _authorController.ModelState.AddModelError("Biography", "Biography cannot exceed 200 characters.");
         }
         [Fact]
         public async Task DeleteAuthor_ShouldReturnOk()
         {
             // ARRANGE
             var authorId = "3";
-            A.CallTo(() => _fakeAuthorRepo.DeleteAuthor(authorId)).Returns(Task.CompletedTask);
+            A.CallTo(() => _fakeAuthorRepo.DeleteAuthor(authorId)).Returns(true);
 
             // ACT
             var result = await _authorController.DeleteAuthor(authorId);
 
             // ASSERT
-            result.Should().BeOfType<OkObjectResult>()
-                .Which.Value.Should().BeOfType<SuccessResult>();
-
+            CommonAssertions.AssertOkResult(result);
         }
     }
 }

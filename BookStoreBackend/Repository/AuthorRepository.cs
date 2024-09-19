@@ -1,12 +1,8 @@
 ﻿using BookStoreBackend.Data;
 using BookStoreBackend.Models;
-using Microsoft.Data.SqlClient;
-using System.Data;
-
 using Microsoft.EntityFrameworkCore;
 using BookStoreBackend.Models.ViewModels;
 using AutoMapper;
-using System.ComponentModel;
 
 public class AuthorRepository : IAuthorRepository
 {
@@ -25,44 +21,44 @@ public class AuthorRepository : IAuthorRepository
 
     public async Task<IEnumerable<AuthorModel>> GetAllAuthors()
     {
-        var authors= await _context.Authors
+        return await _context.Authors
                         .AsNoTracking()
                         .ToListAsync();
-        if(authors != null && authors.Any())
-        {
-            return authors;
-        }
-        return Enumerable.Empty<AuthorModel>();
     }
     public async Task<int> GetAuthorCount()
     {
         return await _context.Authors.CountAsync();
     }
 
-    public async Task RegisterAuthor(AuthorFullNameDto dto)
+    public async Task<bool> RegisterAuthor(AuthorFullNameDto dto)
     {
         var newAuthor = _mapper.Map<AuthorModel>(dto);
         await _context.Authors.AddAsync(newAuthor);
-        await _context.SaveChangesAsync();
+        var changes= await _context.SaveChangesAsync();
+        return (changes > 0);
     }
 
-    public async Task UpdateAuthor(string id, AuthorFullNameDto updatedDto)
+    public async Task<bool> UpdateAuthor(string id, AuthorFullNameDto updatedDto)
     {
         var author = await GetAuthorById(id);
         if (author != null)
         {
             _mapper.Map(updatedDto, author);
-            await _context.SaveChangesAsync();
-        } 
+            var changes= await _context.SaveChangesAsync();
+            return (changes > 0);
+        }
+        return false;
     }
 
-    public async Task DeleteAuthor(string id)
+    public async Task<bool>DeleteAuthor(string id)
     {
         var author = await GetAuthorById(id);
         if (author != null)
         {
             _context.Authors.Remove(author);
-            await _context.SaveChangesAsync();
-        }       
+            var changes= await _context.SaveChangesAsync();
+            return (changes > 0);
+        }
+        return false;
     }
 }

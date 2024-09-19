@@ -24,59 +24,38 @@ public class BookController : ControllerBase
             var error = new ErrorResult { Message = "Invalid book ID." };
             return BadRequest(error);
         }
-
-        try
+        var book = await _bookRepository.GetBookById(id);
+        if (book == null)
         {
-            var book = await _bookRepository.GetBookById(id);
-            if (book == null)
-            {
-                var error = new ErrorResult { Message = "Book not found." };
-                return NotFound(error);
-            }
-
-            var success = new SuccessDataResult<BookModel>
-            {
-                Message = "Successfully fetched the book details.",
-                Data = book
-            };
-
-            return Ok(success);
+            var error = new ErrorResult { Message = "Book not found." };
+            return NotFound(error);
         }
-        catch (Exception ex)
+        var success = new SuccessDataResult<BookModel>
         {
-            _logger.LogError(ex, "An error occurred while fetching book details.");
-            var error = new ErrorResult { Message = "An unexpected error occurred." };
-            return StatusCode(500, error);
-        }
+            Message = "Successfully fetched the book details.",
+            Data = book
+        };
+        return Ok(success);
     }
 
     [HttpGet("all-books")]
     public async Task<IActionResult> GetAllBooks()
     {
-        try
+        var books = await _bookRepository.GetAllBooks();
+
+        if (books == null || !books.Any())
         {
-            var books = await _bookRepository.GetAllBooks();
-
-            if (books == null || !books.Any())
-            {
-                var error = new ErrorResult { Message = "No books found." };
-                return NotFound(error);
-            }
-
-            var success = new SuccessDataResult<IEnumerable<BookModel>>
-            {
-                Message = "Successfully fetched all books.",
-                Data = books
-            };
-
-            return Ok(success);
+            var error = new ErrorResult { Message = "No books found." };
+            return NotFound(error);
         }
-        catch (Exception ex)
+
+        var success = new SuccessDataResult<IEnumerable<BookModel>>
         {
-            _logger.LogError(ex, "An error occurred while fetching books.");
-            var error = new ErrorResult { Message = "An unexpected error occurred." };
-            return StatusCode(500, error);
-        }
+            Message = "Successfully fetched all books.",
+            Data = books
+        };
+        return Ok(success);
+
     }
 
     [HttpPost("register-book")]
@@ -85,23 +64,14 @@ public class BookController : ControllerBase
         if (!ModelState.IsValid)
         {
             var error = new ErrorDataResult
-            { Message = "Invalid input for book creation.", Errors = ModelState.GetErrors() };
+            { Message = "Invalid input for book registration.", Errors = ModelState.GetErrors() };
             return BadRequest(error);
         }
-
-        try
-        {
-            await _bookRepository.RegisterBook(bookDto);
-
-            var success = new SuccessResult { Message = "Book successfully created." };
-            return Ok(success);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while creating the book.");
-            var errorResult = new ErrorDataResult { Message = "An unexpected error occurred. Please try again later." };
-            return StatusCode(500, errorResult);
-        }
+        var result= await _bookRepository.RegisterBook(bookDto);
+        if (result)
+            return Ok(new SuccessResult { Message = "Book successfully created." });
+        else
+            return BadRequest(new ErrorResult { Message = "Failed to register the book for given inputs. Sorry?" });
     }
 
     [HttpPut("update-book/{id}")]
@@ -113,19 +83,13 @@ public class BookController : ControllerBase
             return BadRequest(error);
         }
 
-        try
-        {
-            await _bookRepository.UpdateBook(id, bookDto);
 
-            var success = new SuccessResult { Message = "Book successfully updated." };
-            return Ok(success);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while updating the book.");
-            var errorResult = new ErrorResult { Message = "An unexpected error occurred. Please try again later." };
-            return StatusCode(500, errorResult);
-        }
+        var result = await _bookRepository.UpdateBook(id, bookDto);
+        if (result)
+            return Ok(new SuccessResult { Message = "Book successfully updated." });
+        else
+            return BadRequest(new ErrorResult { Message = "Failed to update the details for the requested book" });
+
     }
 
     [HttpDelete("delete-book/{id}")]
@@ -136,19 +100,10 @@ public class BookController : ControllerBase
             var error = new ErrorResult { Message = "Invalid book ID." };
             return BadRequest(error);
         }
-
-        try
-        {
-            await _bookRepository.DeleteBook(id);
-
-            var success = new SuccessResult { Message = "Book successfully deleted." };
-            return Ok(success);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "An error occurred while deleting the book.");
-            var error = new ErrorResult { Message = "An unexpected error occurred." };
-            return StatusCode(500, error);
-        }
+        var result = await _bookRepository.DeleteBook(id);
+        if (result)
+            return Ok(new SuccessResult { Message = "Book successfully deleted." });
+        else
+            return BadRequest(new ErrorResult { Message = "Failed to delete the book record for the given ID" });
     }
 }

@@ -24,44 +24,44 @@ public class BookRepository : IBookRepository
 
     public async Task<IEnumerable<BookModel>> GetAllBooks()
     {
-        var books = await _context.Books
+        return await _context.Books
                              .AsNoTracking()
                              .ToListAsync();
-        if (books != null && books.Any())
-        {
-            return books;
-        }
-        return Enumerable.Empty<BookModel>();
     }
     public async Task<int> GetBookCount()
     {
         return await _context.Books.CountAsync();
     }
 
-    public async Task RegisterBook(BookViewModel bookDto)
+    public async Task<bool> RegisterBook(BookViewModel bookDto)
     {
         var newBook = _mapper.Map<BookModel>(bookDto);
         await _context.Books.AddAsync(newBook);
-        await _context.SaveChangesAsync();
+        var changes= await _context.SaveChangesAsync();
+        return (changes > 0);
     }
 
-    public async Task UpdateBook(string id, BookViewModel updatedDto)
+    public async Task<bool> UpdateBook(string id, BookViewModel updatedDto)
     {
         var book = await GetBookById(id);
         if (book != null)
         {
             _mapper.Map(updatedDto, book);
-            await _context.SaveChangesAsync();
+            var changes= await _context.SaveChangesAsync();
+            return (changes > 0);
         }
+        return false;
     }
 
-    public async Task DeleteBook(string id)
+    public async Task<bool> DeleteBook(string id)
     {
         var book = await GetBookById(id);
         if (book != null)
         {
             _context.Books.Remove(book);
-            await _context.SaveChangesAsync();
+            var changes= await _context.SaveChangesAsync();
+            return  (changes > 0);
         }
+        return false;
     }
 }

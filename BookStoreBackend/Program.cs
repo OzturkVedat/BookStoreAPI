@@ -1,7 +1,7 @@
-using AutoMapper;
 using BookStoreBackend;
 using BookStoreBackend.Data;
 using Microsoft.EntityFrameworkCore;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,13 +19,12 @@ options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnectio
 builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-//await SeedData(app);
+await SeedData(app);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -33,6 +32,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 
@@ -42,14 +43,14 @@ app.MapControllers();
 
 app.Run();
 
-//async Task SeedData(IHost app)    
-//{
-//    var scopedFactory = app.Services.GetService<IServiceScopeFactory>();
+async Task SeedData(IHost app)
+{
+    var scopedFactory = app.Services.GetService<IServiceScopeFactory>();
 
-//    using (var scope = scopedFactory.CreateScope())
-//    {
-//        var seedService = scope.ServiceProvider.GetRequiredService<Seeder>();
-//        await seedService.SeedDbContext();
-//    }
-//}
+    using (var scope = scopedFactory.CreateScope())
+    {
+        var seedService = scope.ServiceProvider.GetRequiredService<Seeder>();
+        await seedService.SeedDbContext();
+    }
+}
 public partial class Program;       // enabling referencing from factories
