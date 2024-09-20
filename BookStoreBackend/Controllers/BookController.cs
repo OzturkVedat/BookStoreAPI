@@ -20,42 +20,27 @@ public class BookController : ControllerBase
     public async Task<IActionResult> GetBookById(string id)
     {
         if (string.IsNullOrWhiteSpace(id))
-        {
-            var error = new ErrorResult { Message = "Invalid book ID." };
-            return BadRequest(error);
-        }
-        var book = await _bookRepository.GetBookById(id);
-        if (book == null)
-        {
-            var error = new ErrorResult { Message = "Book not found." };
-            return NotFound(error);
-        }
-        var success = new SuccessDataResult<BookModel>
-        {
-            Message = "Successfully fetched the book details.",
-            Data = book
-        };
-        return Ok(success);
+            return BadRequest(new ErrorResult("Invalid book ID."));
+
+        var result = await _bookRepository.GetBookById(id);
+        return (!result.IsSuccess) ? BadRequest(result) : Ok(result);
+
     }
 
     [HttpGet("all-books")]
-    public async Task<IActionResult> GetAllBooks()
+    public async Task<IActionResult> GetAllBooks([FromQuery] int page = 1, [FromQuery] int pageSize = 30)
     {
-        var books = await _bookRepository.GetAllBooks();
-
-        if (books == null || !books.Any())
+        if (page < 1)
         {
-            var error = new ErrorResult { Message = "No books found." };
-            return NotFound(error);
+            return BadRequest(new ErrorResult("Page number must be greater than or equal to 1."));
         }
 
-        var success = new SuccessDataResult<IEnumerable<BookModel>>
+        if (pageSize < 1 || pageSize > 200)
         {
-            Message = "Successfully fetched all books.",
-            Data = books
-        };
-        return Ok(success);
-
+            return BadRequest(new ErrorResult("Page size must be between 1 and 100."));
+        }
+        var books = await _bookRepository.GetAllBooks(page, pageSize);
+        return Ok(books);
     }
 
     [HttpPost("register-book")]
@@ -63,33 +48,28 @@ public class BookController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
-            var error = new ErrorDataResult
-            { Message = "Invalid input for book registration.", Errors = ModelState.GetErrors() };
+            var error = new ErrorDataResult("Invalid input for book registration.", ModelState.GetErrors());
             return BadRequest(error);
         }
-        var result= await _bookRepository.RegisterBook(bookDto);
-        if (result)
-            return Ok(new SuccessResult { Message = "Book successfully created." });
-        else
-            return BadRequest(new ErrorResult { Message = "Failed to register the book for given inputs. Sorry?" });
+        var result = await _bookRepository.RegisterBook(bookDto);
+        return (!result.IsSuccess) ? BadRequest(result) : Ok(result);
     }
 
     [HttpPut("update-book/{id}")]
     public async Task<IActionResult> UpdateBook(string id, BookViewModel bookDto)
     {
-        if (!ModelState.IsValid)
+        if (string.IsNullOrWhiteSpace(id))
         {
-            var error = new ErrorDataResult { Message = "Invalid input for book update.", Errors = ModelState.GetErrors() };
+            var error = new ErrorResult { Message = "Invalid book ID." };
             return BadRequest(error);
         }
-
-
+        if (!ModelState.IsValid)
+        {
+            var error = new ErrorDataResult("Invalid inputs.", ModelState.GetErrors());
+            return BadRequest(error);
+        }
         var result = await _bookRepository.UpdateBook(id, bookDto);
-        if (result)
-            return Ok(new SuccessResult { Message = "Book successfully updated." });
-        else
-            return BadRequest(new ErrorResult { Message = "Failed to update the details for the requested book" });
-
+        return (!result.IsSuccess) ? BadRequest(result) : Ok(result);
     }
 
     [HttpDelete("delete-book/{id}")]
@@ -101,9 +81,6 @@ public class BookController : ControllerBase
             return BadRequest(error);
         }
         var result = await _bookRepository.DeleteBook(id);
-        if (result)
-            return Ok(new SuccessResult { Message = "Book successfully deleted." });
-        else
-            return BadRequest(new ErrorResult { Message = "Failed to delete the book record for the given ID" });
+        return (!result.IsSuccess) ? BadRequest(result) : Ok(result);
     }
 }

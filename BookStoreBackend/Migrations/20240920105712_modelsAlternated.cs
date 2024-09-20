@@ -5,7 +5,7 @@
 namespace BookStoreBackend.Migrations
 {
     /// <inheritdoc />
-    public partial class init : Migration
+    public partial class modelsAlternated : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -19,7 +19,8 @@ namespace BookStoreBackend.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    FullName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Biography = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Nationality = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
@@ -36,7 +37,13 @@ namespace BookStoreBackend.Migrations
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     BookGenre = table.Column<int>(type: "int", nullable: false),
                     Price = table.Column<int>(type: "int", nullable: false),
-                    AuthorId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    Publisher = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PageCount = table.Column<int>(type: "int", nullable: false),
+                    BookLanguage = table.Column<int>(type: "int", nullable: false),
+                    AuthorId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ISBN = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Stock = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {

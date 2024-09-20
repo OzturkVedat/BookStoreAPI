@@ -2,7 +2,6 @@
 using BookStoreBackend.Models;
 using BookStoreBackend.Models.ResultModels;
 using BookStoreBackend.Models.ViewModels;
-using BookStoreBackend.Tests.Abstractions;
 using BookStoreBackend.Tests.TestUtilities;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -17,9 +16,9 @@ using System.Threading.Tasks;
 
 namespace BookStoreBackend.Tests.ControllerTests
 {
-    public class AuthorContollerE2E : BaseFunctionalTest
+    public class AuthorContollerE2E : E2ETestBase
     {
-        public AuthorContollerE2E(FunctionalTestWebAppFactory factory) : base(factory)
+        public AuthorContollerE2E(E2ETestDbFactory factory) : base(factory)
         {
 
         }
@@ -50,9 +49,10 @@ namespace BookStoreBackend.Tests.ControllerTests
         public async Task RegisterAuthorByFullName_ShouldReturnSuccess()
         {
             // ARRANGE
-            var newAuthor = new AuthorFullNameDto
+            var newAuthor = new AuthorViewModel
             {
-                FullName = "Victor Hugo",
+                FirstName = "Victor",
+                LastName = "Hugo",
                 Nationality = "French",
                 Biography = "Famous French writer..."
             };
@@ -68,9 +68,10 @@ namespace BookStoreBackend.Tests.ControllerTests
         {
             // ARRANGE
             var authorId = "MTwain";
-            var updatedDto = new AuthorFullNameDto
+            var updatedDto = new AuthorViewModel
             {
-                FullName = "Mark Twain",
+                FirstName = "Mark",
+                LastName = "Twain",
                 Nationality = "American",
                 Biography = "American author known for his novels ..."
             };

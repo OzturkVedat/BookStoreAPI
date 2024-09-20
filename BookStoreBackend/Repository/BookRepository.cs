@@ -1,10 +1,11 @@
 ﻿using BookStoreBackend.Data;
 using BookStoreBackend.Models.ViewModels;
 using BookStoreBackend.Models;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using System.Data;
 using AutoMapper;
+using BookStoreBackend.Models.ResultModels;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 public class BookRepository : IBookRepository
 {
@@ -17,51 +18,91 @@ public class BookRepository : IBookRepository
         _mapper = mapper;
     }
 
-    public async Task<BookModel> GetBookById(string id)
+    public async Task<ResultModel> GetBookById(string id)
     {
-        return await _context.Books.FirstOrDefaultAsync(b => b.Id == id);
+        var book = await _context.Books.FirstOrDefaultAsync(b => b.Id == id);
+        if (book == null)
+        {
+            return new ErrorResult($"No book found with ID: {id}");
+        }
+        return new SuccessDataResult<BookModel>("Book retrieved successfully.", book);
     }
 
-    public async Task<IEnumerable<BookModel>> GetAllBooks()
+    public async Task<ResultModel> GetBooksByTitle(string title)
     {
-        return await _context.Books
-                             .AsNoTracking()
-                             .ToListAsync();
+        var books = await _context.Books.Where(b => b.Title == title).ToListAsync();
+        if (books.Any())
+            return new SuccessDataResult<IEnumerable<BookModel>>("Books retrieved successfully.", books);
+        return new ErrorResult($"No book found with title: {title}");
     }
+    public async Task<bool> BookWithSameIsbnExists(string isbn)
+    {
+        var book = await _context.Books.FirstOrDefaultAsync(b => b.ISBN == isbn);
+        return book != null;
+    }
+
+    public async Task<ResultModel> GetAllBooks(int page, int pageSize)
+    {
+        var books= await _context.Books
+                             .AsNoTracking()
+                             .Skip((page - 1) * pageSize)
+                             .Take(pageSize)
+                             .ToListAsync();
+        return (books.Any())
+        ? new SuccessDataResult<IEnumerable<BookModel>>("Successfully fetched the requested authors.", books)
+        : new ErrorResult("No authors found for the requested page.");
+    }
+
     public async Task<int> GetBookCount()
     {
         return await _context.Books.CountAsync();
     }
 
-    public async Task<bool> RegisterBook(BookViewModel bookDto)
+    public async Task<ResultModel> RegisterBook(BookViewModel bookDto)
     {
+        if (bookDto.ISBN != null)
+        {
+            var bookExists = await BookWithSameIsbnExists(bookDto.ISBN);
+            if (bookExists)
+                return new ErrorResult("Book with the same ISBN already registered.");
+        }
         var newBook = _mapper.Map<BookModel>(bookDto);
         await _context.Books.AddAsync(newBook);
-        var changes= await _context.SaveChangesAsync();
-        return (changes > 0);
+        var changes = await _context.SaveChangesAsync();
+
+        return (changes > 0)
+        ? new SuccessResult("Book registered successfully.") : new ErrorResult("Failed to register the book.");
     }
 
-    public async Task<bool> UpdateBook(string id, BookViewModel updatedDto)
+    public async Task<ResultModel> UpdateBook(string id, BookViewModel updatedDto)
     {
         var book = await GetBookById(id);
-        if (book != null)
+        if (book is ErrorResult)
         {
-            _mapper.Map(updatedDto, book);
-            var changes= await _context.SaveChangesAsync();
-            return (changes > 0);
+            return new ErrorResult($"No book found with ID: {id}");
         }
-        return false;
+
+        var bookModel = ((SuccessDataResult<BookModel>)book).Data;
+        _mapper.Map(updatedDto, bookModel);
+        var changes = await _context.SaveChangesAsync();
+
+        return (changes > 0)
+        ? new SuccessResult("Book updated successfully.") : new ErrorResult("Failed to update the book.");
     }
 
-    public async Task<bool> DeleteBook(string id)
+    public async Task<ResultModel> DeleteBook(string id)
     {
         var book = await GetBookById(id);
-        if (book != null)
+        if (book is ErrorResult)
         {
-            _context.Books.Remove(book);
-            var changes= await _context.SaveChangesAsync();
-            return  (changes > 0);
+            return new ErrorResult($"No book found with ID: {id}");
         }
-        return false;
+
+        var bookModel = ((SuccessDataResult<BookModel>)book).Data;
+        _context.Books.Remove(bookModel);
+        var changes = await _context.SaveChangesAsync();
+
+        return (changes > 0)
+        ? new SuccessResult("Book deleted successfully.") : new ErrorResult("Failed to delete the book.");
     }
 }

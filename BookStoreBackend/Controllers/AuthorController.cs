@@ -23,34 +23,24 @@ public class AuthorController : ControllerBase
         {
             return BadRequest(new ErrorResult { Message = "Invalid author ID." });
         }
-        var author = await _authorRepository.GetAuthorById(id);
-        if (author == null)
-        {
-            return NotFound(new ErrorResult { Message = "Author not found." });
-        }
-
-        return Ok(new SuccessDataResult<AuthorModel>
-        {
-            Message = "Successfully fetched the details of the author.",
-            Data = author
-        });
+        var result = await _authorRepository.GetAuthorById(id);
+        return (result.IsSuccess) ? Ok(result) : BadRequest(result);
     }
 
     [HttpGet("all-authors")]
-    public async Task<IActionResult> GetAllAuthors()
+    public async Task<IActionResult> GetAllAuthors([FromQuery] int page= 1, [FromQuery] int pageSize=10)
     {
-
-        var authors = await _authorRepository.GetAllAuthors();
-        if (authors == null || !authors.Any())
+        if (page < 1)
         {
-            return NotFound(new ErrorResult { Message = "No authors found." });
+            return BadRequest(new ErrorResult("Page number must be greater than or equal to 1."));
         }
 
-        return Ok(new SuccessDataResult<IEnumerable<AuthorModel>>
+        if (pageSize < 1 || pageSize > 200)
         {
-            Message = "Successfully fetched all authors.",
-            Data = authors
-        });
+            return BadRequest(new ErrorResult("Page size must be between 1 and 100."));
+        }
+        var result = await _authorRepository.GetAllAuthors(page, pageSize);
+        return (result.IsSuccess) ? Ok(result) : BadRequest(result);
     }
 
     [HttpPost("register-author")]
@@ -58,60 +48,21 @@ public class AuthorController : ControllerBase
     {
         if (!ModelState.IsValid)
         {
-            return BadRequest(new ErrorDataResult
-            {
-                Message = "Invalid input for author registration",
-                Errors = ModelState.GetErrors()
-            });
-        }
-        string fullName = $"{authorDto.FirstName} {authorDto.LastName}";
-        AuthorFullNameDto dto = new AuthorFullNameDto()
-        {
-            FullName = fullName,
-            Nationality = authorDto.Nationality,
-            Biography = authorDto.Biography
-        };
-        var result = await _authorRepository.RegisterAuthor(dto);
-        if (result)
-            return Ok(new SuccessResult { Message = "Author successfully registered." });
-        else
-            return BadRequest(new ErrorResult { Message = "Failed to register the author for given inputs." });
-    }
-
-    [HttpPost("register-author-by-fullname")]
-    public async Task<IActionResult> RegisterAuthorByFullName(AuthorFullNameDto authorDto)
-    {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(new ErrorDataResult
-            {
-                Message = "Invalid input for author registration",
-                Errors = ModelState.GetErrors()
-            });
+            return BadRequest(new ErrorDataResult("Invalid input for author registration", ModelState.GetErrors()));
         }
         var result = await _authorRepository.RegisterAuthor(authorDto);
-        if (result)
-            return Ok(new SuccessResult { Message = "Author successfully registered." });
-        else
-            return BadRequest(new ErrorResult { Message = "Failed to register the author for given inputs." });
+        return (result.IsSuccess) ? Ok(result) : BadRequest(result);
     }
 
     [HttpPut("update-author/{id}")]
-    public async Task<IActionResult> UpdateAuthor(string id, AuthorFullNameDto authorDto)
+    public async Task<IActionResult> UpdateAuthor(string id, AuthorViewModel authorDto)
     {
         if (string.IsNullOrWhiteSpace(id) || !ModelState.IsValid)
         {
-            return BadRequest(new ErrorDataResult
-            {
-                Message = "Invalid input for author update",
-                Errors = ModelState.GetErrors()
-            });
+            return BadRequest(new ErrorDataResult("Invalid input for author update", ModelState.GetErrors()));
         }
         var result = await _authorRepository.UpdateAuthor(id, authorDto);
-        if (result)
-            return Ok(new SuccessResult { Message = "Author successfully updated." });
-        else
-            return BadRequest(new ErrorResult { Message = "Failed to update the author for given inputs." });
+        return (result.IsSuccess) ? Ok(result) : BadRequest(result);
     }
 
     [HttpDelete("delete-author/{id}")]
@@ -122,9 +73,6 @@ public class AuthorController : ControllerBase
             return BadRequest(new ErrorResult { Message = "Invalid author ID." });
         }
         var result = await _authorRepository.DeleteAuthor(id);
-        if (result)
-            return Ok(new SuccessResult { Message = "Author successfully deleted." });
-        else
-            return BadRequest(new ErrorResult { Message = "Failed to delete the author record for the given ID" });
+        return (result.IsSuccess) ? Ok(result) : BadRequest(result);
     }
 }

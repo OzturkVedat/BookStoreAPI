@@ -7,9 +7,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Testcontainers.MsSql;
 
-namespace BookStoreBackend.Tests.Abstractions
+namespace BookStoreBackend.Tests.TestUtilities
 {
-    public class FunctionalTestWebAppFactory : WebApplicationFactory<Program>, IAsyncLifetime
+    public class E2ETestDbFactory: WebApplicationFactory<Program>, IAsyncLifetime
     {
         private readonly MsSqlContainer _dbContainer = new MsSqlBuilder()   // spin up a disposable mssql container
             .WithPassword("Mssql-01")

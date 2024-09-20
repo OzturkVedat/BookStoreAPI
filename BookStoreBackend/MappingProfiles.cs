@@ -8,11 +8,8 @@ namespace BookStoreBackend
     {
         public MappingProfiles()
         {
-            CreateMap<AuthorModel, AuthorFullNameDto>();
-            CreateMap<BookModel, BookViewModel>();
-
-            CreateMap<AuthorFullNameDto, AuthorModel>();
-            CreateMap<BookViewModel, BookModel>();
+            CreateMap<AuthorModel, AuthorViewModel>().ReverseMap();   // for two-way mapping
+            CreateMap<BookModel, BookViewModel>().ReverseMap();
 
         }
     }

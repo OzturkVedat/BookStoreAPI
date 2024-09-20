@@ -1,12 +1,13 @@
 ﻿using BookStoreBackend.Models;
+using BookStoreBackend.Models.ResultModels;
 using BookStoreBackend.Models.ViewModels;
 
 public interface IAuthorRepository
 {
-    Task<AuthorModel?> GetAuthorById(string id);
-    Task<IEnumerable<AuthorModel>> GetAllAuthors();
+    Task<ResultModel> GetAuthorById(string id);
+    Task<ResultModel> GetAllAuthors(int page, int pageSize);
     Task<int> GetAuthorCount();
-    Task<bool> RegisterAuthor(AuthorFullNameDto dto);
-    Task<bool> UpdateAuthor(string id,AuthorFullNameDto updatedDto);
-    Task<bool> DeleteAuthor(string id);
+    Task<ResultModel> RegisterAuthor(AuthorViewModel dto);
+    Task<ResultModel> UpdateAuthor(string id, AuthorViewModel updatedDto);
+    Task<ResultModel> DeleteAuthor(string id);
 }

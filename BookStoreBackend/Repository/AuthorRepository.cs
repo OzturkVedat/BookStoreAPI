@@ -3,6 +3,7 @@ using BookStoreBackend.Models;
 using Microsoft.EntityFrameworkCore;
 using BookStoreBackend.Models.ViewModels;
 using AutoMapper;
+using BookStoreBackend.Models.ResultModels;
 
 public class AuthorRepository : IAuthorRepository
 {
@@ -14,51 +15,72 @@ public class AuthorRepository : IAuthorRepository
         _mapper = mapper;
     }
 
-    public async Task<AuthorModel?> GetAuthorById(string id)
+    public async Task<ResultModel> GetAuthorById(string id)
     {
-        return await _context.Authors.FirstOrDefaultAsync(a => a.Id == id);
+        var author = await _context.Authors.FirstOrDefaultAsync(b => b.Id == id);
+        if (author == null)
+        {
+            return new ErrorResult($"No author found with ID: {id}");
+        }
+        return new SuccessDataResult<AuthorModel>("Author details retrieved successfully.", author);
     }
 
-    public async Task<IEnumerable<AuthorModel>> GetAllAuthors()
+    public async Task<ResultModel> GetAllAuthors(int page, int pageSize)   // paginated
     {
-        return await _context.Authors
-                        .AsNoTracking()
-                        .ToListAsync();
+        var authors = await _context.Authors
+                             .AsNoTracking()
+                             .Skip((page - 1) * pageSize)
+                             .Take(pageSize)
+                             .ToListAsync();
+        return (authors.Any())
+        ? new SuccessDataResult<IEnumerable<AuthorModel>>("Successfully fetched the requested authors.", authors)
+        : new ErrorResult("No authors found for the requested page.");
     }
+
     public async Task<int> GetAuthorCount()
     {
         return await _context.Authors.CountAsync();
     }
 
-    public async Task<bool> RegisterAuthor(AuthorFullNameDto dto)
+    public async Task<ResultModel> RegisterAuthor(AuthorViewModel dto)
     {
         var newAuthor = _mapper.Map<AuthorModel>(dto);
+        var existingAuthor = await _context.Authors
+        .FirstOrDefaultAsync(a => a.FullName == newAuthor.FullName);
+
+        if (existingAuthor != null)
+            return new ErrorResult($"Author with name {newAuthor.FullName} is already registered.");
+
         await _context.Authors.AddAsync(newAuthor);
+        var changes = await _context.SaveChangesAsync();
+        return changes > 0
+        ? new SuccessResult("Author registered successfully.") : new ErrorResult("Failed to register.");
+    }
+
+    public async Task<ResultModel> UpdateAuthor(string id, AuthorViewModel updatedDto)
+    {
+        var author = await GetAuthorById(id);
+        if (author is ErrorResult)
+            return new ErrorResult($"No author found with ID: {id}");
+
+        var authorModel = ((SuccessDataResult<AuthorModel>)author).Data;
+        _mapper.Map(updatedDto, authorModel);
         var changes= await _context.SaveChangesAsync();
-        return (changes > 0);
+        return changes > 0
+        ? new SuccessResult("Author details updated successfully.") : new ErrorResult("Failed to update the author details"); 
     }
 
-    public async Task<bool> UpdateAuthor(string id, AuthorFullNameDto updatedDto)
+    public async Task<ResultModel> DeleteAuthor(string id)
     {
         var author = await GetAuthorById(id);
-        if (author != null)
-        {
-            _mapper.Map(updatedDto, author);
-            var changes= await _context.SaveChangesAsync();
-            return (changes > 0);
-        }
-        return false;
-    }
+        if (author is ErrorResult)
+            return new ErrorResult($"No author found with ID: {id}");
 
-    public async Task<bool>DeleteAuthor(string id)
-    {
-        var author = await GetAuthorById(id);
-        if (author != null)
-        {
-            _context.Authors.Remove(author);
-            var changes= await _context.SaveChangesAsync();
-            return (changes > 0);
-        }
-        return false;
+        var authorModel = ((SuccessDataResult<AuthorModel>)author).Data;
+        _context.Authors.Remove(authorModel);
+        var changes = await _context.SaveChangesAsync();
+
+        return (changes > 0)
+        ? new SuccessResult("Author removed successfully.") : new ErrorResult("Failed to remove the author record.");
     }
 }

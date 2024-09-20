@@ -2,6 +2,7 @@
 using BookStoreBackend.Data;
 using BookStoreBackend.Models;
 using BookStoreBackend.Models.ViewModels;
+using BookStoreBackend.Tests.TestUtilities;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -12,27 +13,15 @@ using System.Threading.Tasks;
 
 namespace BookStoreBackend.Tests.RepositoryTests
 {
-    public class AuthorRepositoryIntegration
+    public class AuthorRepositoryIntegration: IClassFixture<IntegrationTestFixture>
     {
         private readonly AuthorRepository _authorRepository;
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
-        public AuthorRepositoryIntegration()
+        public AuthorRepositoryIntegration(IntegrationTestFixture fixture)
         {
-            var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-                    .UseInMemoryDatabase(databaseName: "BookStoreTestDb")
-                    .Options;
-
-            // initialize a test db
-            _context = new ApplicationDbContext(options);
-
-            // automapper config
-            var config = new MapperConfiguration(cfg =>
-            {
-                cfg.CreateMap<AuthorFullNameDto, AuthorModel>();
-            });
-            _mapper = config.CreateMapper();
-
+            _context= fixture.context;
+            _mapper= fixture.mapper;
             _authorRepository = new AuthorRepository(_context, _mapper);
         }
 
@@ -40,9 +29,10 @@ namespace BookStoreBackend.Tests.RepositoryTests
         public async Task RegisterAuthor_ShouldAddAuthorToDb()
         {
             // ARRANGE
-            var authorDto = new AuthorFullNameDto
+            var authorDto = new AuthorViewModel
             {
-                FullName = "Socrates",
+                FirstName = "Socrates",
+                LastName = "son of Aeschines",
                 Nationality = "Greek",
                 Biography = "Ancient greek thinker..."
             };
@@ -65,7 +55,8 @@ namespace BookStoreBackend.Tests.RepositoryTests
             var author = new AuthorModel
             {
                 Id = "janeAu",
-                FullName = "Jane Austen",
+                FirstName = "Jane",
+                LastName= "Austen",
                 Nationality = "English",
                 Biography = "Was an English novelist..."
             };

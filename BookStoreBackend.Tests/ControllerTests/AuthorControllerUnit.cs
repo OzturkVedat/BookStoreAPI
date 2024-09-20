@@ -31,7 +31,8 @@ namespace BookStoreBackend.Tests.ControllerTests
             var expectedAuthor = new AuthorModel
             {
                 Id = "2",
-                FullName = "Stephen King",
+                FirstName = "Stephen",
+                LastName = "King",
                 Nationality = "American",
                 Biography = "American author.."
             };
@@ -80,9 +81,9 @@ namespace BookStoreBackend.Tests.ControllerTests
             // ARRANGE
             var authors = new List<AuthorModel>
                 {
-                    new AuthorModel { Id= "1", FullName= "Leo Tolstoy", Nationality= "Russia", Biography= "Russian author.." },
-                    new AuthorModel { Id= "2", FullName = "Stephen King", Nationality = "American", Biography = "American author.." },
-                    new AuthorModel { Id= "3", FullName= "William Shakespeare", Nationality= "British", Biography= "British poetry.."}
+                    new AuthorModel { Id= "1", FirstName= "Leo",LastName= "Tolstoy", Nationality= "Russia", Biography= "Russian author.." },
+                    new AuthorModel { Id= "2", FirstName = "Stephen",LastName="King", Nationality = "American", Biography = "American author.." },
+                    new AuthorModel { Id= "3", FirstName= "William",LastName="Shakespeare", Nationality= "British", Biography= "British poetry.."}
                 };
             A.CallTo(() => _fakeAuthorRepo.GetAllAuthors())
                 .Returns(Task.FromResult<IEnumerable<AuthorModel>>(authors));
@@ -121,16 +122,17 @@ namespace BookStoreBackend.Tests.ControllerTests
         public async Task RegisterAuthor_ReturnsSuccess_WhenValidDto()
         {
             // ARRANGE
-            var authorDto = new AuthorFullNameDto
+            var authorDto = new AuthorViewModel
             {
-                FullName = "Aldous Huxley",
+                FirstName = "Aldous",
+                LastName = "Huxley",
                 Nationality = "English",
                 Biography = "English writer and philosopher..."
             };
             A.CallTo(() => _fakeAuthorRepo.RegisterAuthor(authorDto)).Returns(true);
 
             // ACT
-            var fnResult = await _authorController.RegisterAuthorByFullName(authorDto);
+            var fnResult = await _authorController.RegisterAuthor(authorDto);
 
             // ASSERT
             CommonAssertions.AssertOkResult(fnResult);
@@ -142,7 +144,7 @@ namespace BookStoreBackend.Tests.ControllerTests
             _authorController.ModelState.AddModelError("FullName", "Full name is required.");
 
             // ACT
-            var result = await _authorController.RegisterAuthorByFullName(new AuthorFullNameDto());
+            var result = await _authorController.RegisterAuthor(new AuthorViewModel());
 
             // ASSERT
             CommonAssertions.AssertBadRequestDataResult(result);
@@ -153,9 +155,10 @@ namespace BookStoreBackend.Tests.ControllerTests
         {
             // ARRANGE
             var authorId = "1";
-            var updatedDto = new AuthorFullNameDto
+            var updatedDto = new AuthorViewModel
             {
-                FullName = "Alexander Pushkin",
+                FirstName = "Alexander",
+                LastName = "Pushkin",
                 Nationality = "Russia",
                 Biography = "Writer and ..."
             };

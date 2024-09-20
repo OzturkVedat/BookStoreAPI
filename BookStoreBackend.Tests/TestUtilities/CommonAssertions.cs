@@ -21,7 +21,7 @@ namespace BookStoreBackend.Tests.TestUtilities
         {
             result.Should().NotBeNull();
             result.Should().BeOfType<OkObjectResult>()
-                .Which.Value.Should().BeOfType<SuccessResult>();
+                .Which.Value.Should().BeOfType<ResultModel>();
         }
         public static void AssertOkDataResult<T>(IActionResult result, T expectedData)
         {
@@ -33,13 +33,13 @@ namespace BookStoreBackend.Tests.TestUtilities
         public static void AssertNotFoundResult(IActionResult result) {
             result.Should().NotBeNull();
             result.Should().BeOfType<NotFoundObjectResult>()
-                .Which.Value.Should().BeOfType<ErrorResult>();
+                .Which.Value.Should().BeOfType<ResultDataModel>();
         }
         public static void AssertBadRequestResult(IActionResult result)
         {
             result.Should().NotBeNull();
             result.Should().BeOfType<BadRequestObjectResult>()
-                .Which.Value.Should().BeOfType<ErrorResult>();
+                .Which.Value.Should().BeOfType<ResultDataModel>();
         }
         public static void AssertBadRequestDataResult(IActionResult result)
         {
@@ -53,14 +53,14 @@ namespace BookStoreBackend.Tests.TestUtilities
         public static async Task AssertHttpOkResponse(HttpResponseMessage response)
         {
             response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
-            var result= await response.Content.ReadFromJsonAsync<SuccessResult>();
+            var result= await response.Content.ReadFromJsonAsync<ResultModel>();
             result.Should().NotBeNull();
         }
 
         public static async Task AssertHttpNotFoundResponse(HttpResponseMessage response)
         {
             response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
-            var result = await response.Content.ReadFromJsonAsync<ErrorResult>();
+            var result = await response.Content.ReadFromJsonAsync<ResultDataModel>();
             result?.Should().NotBeNull();
         }
 
