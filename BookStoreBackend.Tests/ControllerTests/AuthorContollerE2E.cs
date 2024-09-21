@@ -46,7 +46,7 @@ namespace BookStoreBackend.Tests.ControllerTests
         }
 
         [Fact]
-        public async Task RegisterAuthorByFullName_ShouldReturnSuccess()
+        public async Task RegisterAuthor_ShouldReturnSuccess()
         {
             // ARRANGE
             var newAuthor = new AuthorViewModel
@@ -58,7 +58,7 @@ namespace BookStoreBackend.Tests.ControllerTests
             };
 
             // ACT
-            var response = await _client.PostAsJsonAsync("/author/register-author-by-fullname", newAuthor);
+            var response = await _client.PostAsJsonAsync("/author/register-author", newAuthor);
 
             // ASSERT
             await CommonAssertions.AssertHttpOkResponse(response);

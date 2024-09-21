@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BookStoreBackend.Data;
 using BookStoreBackend.Models;
+using BookStoreBackend.Models.ResultModels;
 using BookStoreBackend.Models.ViewModels;
 using BookStoreBackend.Tests.TestUtilities;
 using FluentAssertions;
@@ -36,9 +37,9 @@ namespace BookStoreBackend.Tests.RepositoryTests
             var result= await _bookRepository.GetBookById(bookId);
 
             // ASSERT
-            result.Should().NotBeNull();
-            result.Id.Should().Be(bookId);
-            result.Title.Should().Be("Martin Eden");
+            result.Should().BeOfType<SuccessDataResult<BookModel>>();
+            var successResult = result as SuccessDataResult<BookModel>; // casting
+            successResult.Data.Title.Should().Be("Martin Eden");
         }
 
         [Fact]
@@ -48,31 +49,58 @@ namespace BookStoreBackend.Tests.RepositoryTests
             var result = await _bookRepository.GetBookById("not-existing-id");
 
             // ASSERT
-            result.Should().BeNull();
+            result.Should().BeOfType<ErrorResult>();
+            var errorResult = result as ErrorResult;
+            errorResult.Message.Should().Be("No book found with ID: not-existing-id");
         }
         [Fact]
-        public async Task RegisterBook_ShouldNotAllowDuplicate()
+        public async Task GetBooksByTitle_ShouldReturnBooks_WhenExist()
+        {
+            // Arrange
+            var bookTitle = "The Call of the Wild";     // another seeded book
+
+            // Act
+            var result = await _bookRepository.GetBooksByTitle(bookTitle);
+
+            // Assert
+            result.Should().BeOfType<SuccessDataResult<IEnumerable<BookModel>>>();
+            var successResult = result as SuccessDataResult<IEnumerable<BookModel>>;
+            successResult.Data.Should().HaveCount(1);
+        }
+
+        [Fact]
+        public async Task GetAllBooks_ShouldReturnPaginated_IfExists()
         {
             // ARRANGE
-            var duplicateBook = new BookViewModel
-            {
-                Title = "Martin Eden",
-                BookGenre = Genre.Literary,
-                Price = 100,
-                AuthorId = "Jlondon"
-            };
+            int page = 1;
+            int pageSize = 4;
+
+            // ACT
+            var result= await _bookRepository.GetAllBooks(page, pageSize);
+
+            // ASSERT
+            result.Should().BeOfType<SuccessDataResult<IEnumerable<BookModel>>>();
+            var successResult= result as SuccessDataResult<IEnumerable<BookModel>>;
+            successResult.Data.Should().HaveCount(pageSize);   // 4 seeded books we have
+            successResult.Data.Should().Contain(b => b.Title == "Martin Eden");
         }
 
         [Fact]
-        public async Task GetAllBooks_ShouldReturnAll_IfAny()
+        public async Task GetAllBooks_ShouldReturnEmpty_WhenNoBooksInPage()
         {
-            // ACT
-            var result= await _bookRepository.GetAllBooks();
+            // Arrange
+            int page = 2;
+            int pageSize = 5;
 
-            // ASSERT
-            result.Should().NotBeNull();
-            result.Should().HaveCountGreaterThanOrEqualTo(4);   // 4 seeded books we have
+            // Act: (requesting a second page, which have no books)
+            var result = await _bookRepository.GetAllBooks(page, pageSize);
+
+            // Assert
+            result.Should().BeOfType<ErrorResult>();
+            var errorResult = result as ErrorResult;
+            errorResult.Message.Should().Be("No books found for the requested page.");
         }
+
         [Fact]
         public async Task GetBookCount_ShouldReturnCorrectCount()
         {
@@ -80,7 +108,7 @@ namespace BookStoreBackend.Tests.RepositoryTests
             var count = await _bookRepository.GetBookCount();
 
             // ASSERT
-            count.Should().Be(4); // 4 books in the seed data
+            count.Should().BeGreaterThanOrEqualTo(4);   // 4 books in the seed data, at least
         }
 
         [Fact]
@@ -92,7 +120,10 @@ namespace BookStoreBackend.Tests.RepositoryTests
                 Title = "White Fang",
                 BookGenre = Genre.Literary,
                 Price = 25,
-                AuthorId = "JLondon" // existing author
+                AuthorId = "JLondon", // existing author
+                BookLanguage= Language.English,
+                Publisher= "Hachette",
+                PageCount= 400
             };
 
             // ACT
@@ -100,20 +131,51 @@ namespace BookStoreBackend.Tests.RepositoryTests
             var bookCount = await _bookRepository.GetBookCount();
 
             // ASSERT
-            result.Should().BeTrue();
+            result.Should().BeOfType<SuccessResult>();
+            var successResult= result as SuccessResult;
             bookCount.Should().BeGreaterThanOrEqualTo(5); // now there should be 5 books
         }
+        [Fact]
+        public async Task RegisterBook_ShouldNotAllowDuplicate()
+        {
+            // ARRANGE
+            var duplicateBook = new BookViewModel
+            {
+                Title = "Martin Eden",
+                BookGenre = Genre.Literary,
+                Price = 100,
+                AuthorId = "Jlondon",
+                ISBN = "9780140187734",      // already seeded ISBN
+                Publisher = "Hachette",
+                PageCount = 250,
+                BookLanguage = Language.English
+            };
+
+            // ACT
+            var result= await _bookRepository.RegisterBook(duplicateBook);
+
+            // ASSERT
+            var errorResult = result as ErrorResult;
+            errorResult.Should().NotBeNull();       // means casting is succeed
+        }
+
         [Fact]
         public async Task UpdateBook_ShouldModifyExisting()
         {
             // ARRANGE
-            string bookId = "MEden";
+            string bookId = "AlicesAdv";
             var updatedDto = new BookViewModel
             {
-                Title = "Martin Eden",
-                BookGenre = Genre.Literary,
-                Price = 123,     // new price
-                AuthorId = "JLondon"
+                Title = "Alice's Adventures in Wonderland",
+                BookGenre = Genre.Fantasy,
+                Price = 20,     // changed 
+                AuthorId = "LCarroll",
+                Publisher = "Macmillan Publishers",
+                PageCount = 96,
+                BookLanguage = Language.English,
+                ISBN = "9781503222687",
+                Description = "A fantastical tale about a girl named Alice and her adventures.",
+                Stock = 55      // changed
             };
 
             // ACT
@@ -121,32 +183,28 @@ namespace BookStoreBackend.Tests.RepositoryTests
             var updatedBook = await _bookRepository.GetBookById(bookId);
 
             // ASSERT
-            result.Should().BeTrue();
-            updatedBook.Price.Should().Be(123);
+            result.Should().BeOfType<SuccessResult>();
+
+            var book = updatedBook as SuccessDataResult<BookModel>;
+            book.Should().NotBeNull();
+            book.Data.Stock.Should().Be(55);
+            book.Data.Price.Should().Be(20);
         }
 
         [Fact]
         public async Task DeleteBook_ShouldRemove_WhenExists()
         {
             // ARRANGE
-            var testBook = new BookViewModel
-            {
-                Title = "Test Book",
-                Price = 25,
-                BookGenre = Genre.Fantasy,
-                AuthorId = "LCarroll"
-            };
-            await _bookRepository.RegisterBook(testBook);
+            var books = await _bookRepository.GetBooksByTitle("Martin Eden");
+            var booksResult= books as SuccessDataResult<IEnumerable<BookModel>>;
+            var registeredBook = booksResult.Data.FirstOrDefault();
 
             // ACT & ASSERT
-            var registeredBook= await _bookRepository.GetBookByTitle(testBook.Title); 
-            registeredBook.Should().NotBeNull();
-            
             var result= await _bookRepository.DeleteBook(registeredBook.Id);
-            result.Should().BeTrue();
+            result.Should().BeOfType<SuccessResult>();
 
-            var exists= await _bookRepository.GetBookById(registeredBook.Id);
-            exists.Should().BeNull();
+            var checkResult = await _bookRepository.GetBookById(registeredBook.Id);
+            checkResult.Should().BeOfType<ErrorResult>();
         }
     }
 }

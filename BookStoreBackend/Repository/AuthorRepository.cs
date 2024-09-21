@@ -46,10 +46,10 @@ public class AuthorRepository : IAuthorRepository
     {
         var newAuthor = _mapper.Map<AuthorModel>(dto);
         var existingAuthor = await _context.Authors
-        .FirstOrDefaultAsync(a => a.FullName == newAuthor.FullName);
+                    .FirstOrDefaultAsync(a => a.FirstName == newAuthor.FirstName && a.LastName == newAuthor.LastName);
 
         if (existingAuthor != null)
-            return new ErrorResult($"Author with name {newAuthor.FullName} is already registered.");
+            return new ErrorResult($"Author with name {newAuthor.FirstName} {newAuthor.LastName} is already registered.");
 
         await _context.Authors.AddAsync(newAuthor);
         var changes = await _context.SaveChangesAsync();
@@ -67,7 +67,7 @@ public class AuthorRepository : IAuthorRepository
         _mapper.Map(updatedDto, authorModel);
         var changes= await _context.SaveChangesAsync();
         return changes > 0
-        ? new SuccessResult("Author details updated successfully.") : new ErrorResult("Failed to update the author details"); 
+        ? new SuccessResult("Author details updated successfully.") : new ErrorResult("Failed to update the author details."); 
     }
 
     public async Task<ResultModel> DeleteAuthor(string id)

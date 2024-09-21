@@ -49,8 +49,8 @@ public class BookRepository : IBookRepository
                              .Take(pageSize)
                              .ToListAsync();
         return (books.Any())
-        ? new SuccessDataResult<IEnumerable<BookModel>>("Successfully fetched the requested authors.", books)
-        : new ErrorResult("No authors found for the requested page.");
+        ? new SuccessDataResult<IEnumerable<BookModel>>("Successfully fetched the requested books.", books)
+        : new ErrorResult("No books found for the requested page.");
     }
 
     public async Task<int> GetBookCount()

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BookStoreBackend.Data;
 using BookStoreBackend.Models;
+using BookStoreBackend.Models.ResultModels;
 using BookStoreBackend.Models.ViewModels;
 using BookStoreBackend.Tests.TestUtilities;
 using FluentAssertions;
@@ -24,6 +25,20 @@ namespace BookStoreBackend.Tests.RepositoryTests
             _mapper= fixture.mapper;
             _authorRepository = new AuthorRepository(_context, _mapper);
         }
+        [Fact]
+        public async Task GetAuthorById_ReturnsAuthor_WhenExists()
+        {
+            // ARRANGE
+            string authorId = "MTwain";        // an actual seeded author ID 
+
+            // ACT
+            var result = await _authorRepository.GetAuthorById(authorId);
+
+            // ASSERT
+            var successResult = result as SuccessDataResult<AuthorModel>;
+            successResult.Should().NotBeNull();
+            successResult.Data.FullName.Should().Be("Mark Twain");
+        }
 
         [Fact]
         public async Task RegisterAuthor_ShouldAddAuthorToDb()
@@ -31,10 +46,10 @@ namespace BookStoreBackend.Tests.RepositoryTests
             // ARRANGE
             var authorDto = new AuthorViewModel
             {
-                FirstName = "Socrates",
-                LastName = "son of Aeschines",
-                Nationality = "Greek",
-                Biography = "Ancient greek thinker..."
+                FirstName = "Howard Phillips",
+                LastName = "Lovecraft",
+                Nationality = "American",
+                Biography = "Was an American writer of weird, science..."
             };
             var count = await _authorRepository.GetAuthorCount();
 
@@ -42,34 +57,9 @@ namespace BookStoreBackend.Tests.RepositoryTests
             await _authorRepository.RegisterAuthor(authorDto);
 
             // ASSERT
-            var authors = await _authorRepository.GetAllAuthors();
-            authors.Should().NotBeEmpty();
-            authors.Count().Should().BeGreaterThan(count);
-
-        }
-
-        [Fact]
-        public async Task GetAuthorById_ReturnsAuthor_WhenExists()
-        {
-            // ARRANGE
-            var author = new AuthorModel
-            {
-                Id = "janeAu",
-                FirstName = "Jane",
-                LastName= "Austen",
-                Nationality = "English",
-                Biography = "Was an English novelist..."
-            };
-            _context.Authors.Add(author);
-            await _context.SaveChangesAsync();
-
-            // ACT
-            var result = await _authorRepository.GetAuthorById("janeAu");
-
-            // ASSERT
-            result.Should().NotBeNull();
-            result.FullName.Should().Be("Jane Austen");
-        }
+            var newCount= await _authorRepository.GetAuthorCount();
+            newCount.Should().Be(count + 1);
+        }    
 
         [Fact]
         public async Task UpdateAuthor_ShouldUpdateDetails()
@@ -78,27 +68,30 @@ namespace BookStoreBackend.Tests.RepositoryTests
             var author = new AuthorModel
             {
                 Id = "alDumas",
-                FullName = "Alexandre Dumas",
+                FirstName = "Alexandre",
+                LastName = "Dumas",
                 Nationality = "French",
                 Biography = "French writer and..."
             };
             _context.Authors.Add(author);
             await _context.SaveChangesAsync();
 
-            var updatedDto = new AuthorFullNameDto
+            var updatedDto = new AuthorViewModel
             {
-                FullName = "Alexandre Dumas",
+                FirstName = "Alexandre",
+                LastName = "Dumas",
                 Nationality = "French",
                 Biography = "Writer of ..."
             };
 
             // ACT
-            await _authorRepository.UpdateAuthor("alDumas", updatedDto);
+            await _authorRepository.UpdateAuthor(author.Id, updatedDto);
 
             // ASSERT
-            var updatedAuthor = await _authorRepository.GetAuthorById("alDumas");
-            updatedAuthor.Should().NotBeNull();
-            updatedAuthor.Biography.Should().Be("Writer of ...");
+            var result = await _authorRepository.GetAuthorById("alDumas");
+            var successResult = result as SuccessDataResult<AuthorModel>;
+            successResult.Should().NotBeNull();
+            successResult.Data.Biography.Should().Be("Writer of ...");
 
         }
         [Fact]
@@ -107,8 +100,9 @@ namespace BookStoreBackend.Tests.RepositoryTests
             // ARRANGE 
             var author = new AuthorModel
             {
-                Id = "dummyId",
-                FullName = "unk",
+                Id = "some-id",
+                FirstName = "some-name",
+                LastName= "some-last-name",
                 Nationality = "unk",
                 Biography = "unk..."
             };
@@ -116,11 +110,11 @@ namespace BookStoreBackend.Tests.RepositoryTests
             await _context.SaveChangesAsync();
 
             // ACT
-            await _authorRepository.DeleteAuthor("dummyId");
+            await _authorRepository.DeleteAuthor(author.Id);
 
             // ASSERT
-            var result = await _authorRepository.GetAuthorById("dummyId");
-            result.Should().BeNull();
+            var result = await _authorRepository.GetAuthorById(author.Id);
+            result.IsSuccess.Should().BeFalse();
         }
     }
 }

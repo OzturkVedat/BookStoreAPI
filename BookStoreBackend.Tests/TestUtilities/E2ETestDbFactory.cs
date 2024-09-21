@@ -9,7 +9,7 @@ using Testcontainers.MsSql;
 
 namespace BookStoreBackend.Tests.TestUtilities
 {
-    public class E2ETestDbFactory: WebApplicationFactory<Program>, IAsyncLifetime
+    public class E2ETestDbFactory : WebApplicationFactory<Program>, IAsyncLifetime
     {
         private readonly MsSqlContainer _dbContainer = new MsSqlBuilder()   // spin up a disposable mssql container
             .WithPassword("Mssql-01")
@@ -30,24 +30,20 @@ namespace BookStoreBackend.Tests.TestUtilities
                 {
                     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                     context.Database.Migrate();
-                }
 
-                // Seed data
-                using (var scope = services.BuildServiceProvider().CreateScope())
-                {
                     var seeder = scope.ServiceProvider.GetRequiredService<Seeder>();
                     seeder.SeedDbContext().Wait();  // ensure seeding completes
                 }
             });
         }
 
-        public Task InitializeAsync()
+        public async Task InitializeAsync()
         {
-            return _dbContainer.StartAsync();
+            await _dbContainer.StartAsync();
         }
-        public new Task DisposeAsync()
+        public new async Task DisposeAsync()
         {
-            return _dbContainer.StopAsync();
+            await _dbContainer.StopAsync();
         }
     }
 }

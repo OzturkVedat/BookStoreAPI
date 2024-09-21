@@ -11,6 +11,7 @@ using Azure;
 using BookStoreBackend.Models;
 using System.Text.Json;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.Http;
 
 namespace BookStoreBackend.Tests.TestUtilities
 {
@@ -21,7 +22,7 @@ namespace BookStoreBackend.Tests.TestUtilities
         {
             result.Should().NotBeNull();
             result.Should().BeOfType<OkObjectResult>()
-                .Which.Value.Should().BeOfType<ResultModel>();
+                .Which.Value.Should().BeOfType<SuccessResult>();
         }
         public static void AssertOkDataResult<T>(IActionResult result, T expectedData)
         {
@@ -33,13 +34,13 @@ namespace BookStoreBackend.Tests.TestUtilities
         public static void AssertNotFoundResult(IActionResult result) {
             result.Should().NotBeNull();
             result.Should().BeOfType<NotFoundObjectResult>()
-                .Which.Value.Should().BeOfType<ResultDataModel>();
+                .Which.Value.Should().BeOfType<ErrorResult>();
         }
         public static void AssertBadRequestResult(IActionResult result)
         {
             result.Should().NotBeNull();
             result.Should().BeOfType<BadRequestObjectResult>()
-                .Which.Value.Should().BeOfType<ResultDataModel>();
+                .Which.Value.Should().BeOfType<ErrorResult>();
         }
         public static void AssertBadRequestDataResult(IActionResult result)
         {
@@ -56,14 +57,6 @@ namespace BookStoreBackend.Tests.TestUtilities
             var result= await response.Content.ReadFromJsonAsync<ResultModel>();
             result.Should().NotBeNull();
         }
-
-        public static async Task AssertHttpNotFoundResponse(HttpResponseMessage response)
-        {
-            response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
-            var result = await response.Content.ReadFromJsonAsync<ResultDataModel>();
-            result?.Should().NotBeNull();
-        }
-
         public static async Task AssertAndDeserializeHttpOkResponse(HttpResponseMessage response)
         {
             var jsonString = await response.Content.ReadAsStringAsync();
@@ -73,9 +66,23 @@ namespace BookStoreBackend.Tests.TestUtilities
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase   // deserialize
             });
 
-            apiResponse.Success.Should().BeTrue();
+            apiResponse.IsSuccess.Should().BeTrue();
             apiResponse.Data.Should().NotBeNull();
             apiResponse.Data.Count.Should().BeGreaterThan(1);
         }
+        public static async Task AssertHttpNotFoundResponse(HttpResponseMessage response)
+        {
+            response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
+            var result = await response.Content.ReadFromJsonAsync<ErrorResult>();
+            result?.Should().NotBeNull();
+        }
+
+        public static async Task AssertHttpBadRequestResponse(HttpResponseMessage response)
+        {
+            response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
+            var result = await response.Content.ReadFromJsonAsync<ErrorResult>();
+            result?.Should().NotBeNull();
+        }
+        
     }
 }

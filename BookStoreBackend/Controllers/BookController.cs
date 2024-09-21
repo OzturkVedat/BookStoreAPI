@@ -23,7 +23,7 @@ public class BookController : ControllerBase
             return BadRequest(new ErrorResult("Invalid book ID."));
 
         var result = await _bookRepository.GetBookById(id);
-        return (!result.IsSuccess) ? BadRequest(result) : Ok(result);
+        return (!result.IsSuccess) ? NotFound(result) : Ok(result);
 
     }
 
@@ -39,8 +39,8 @@ public class BookController : ControllerBase
         {
             return BadRequest(new ErrorResult("Page size must be between 1 and 100."));
         }
-        var books = await _bookRepository.GetAllBooks(page, pageSize);
-        return Ok(books);
+        var result = await _bookRepository.GetAllBooks(page, pageSize);
+        return (!result.IsSuccess) ? NotFound(result) : Ok(result);
     }
 
     [HttpPost("register-book")]
@@ -69,7 +69,10 @@ public class BookController : ControllerBase
             return BadRequest(error);
         }
         var result = await _bookRepository.UpdateBook(id, bookDto);
-        return (!result.IsSuccess) ? BadRequest(result) : Ok(result);
+        if (result.IsSuccess) 
+            return Ok(result);
+
+        return (result.Message == "Failed to update the book.") ? BadRequest(result) : NotFound(result);
     }
 
     [HttpDelete("delete-book/{id}")]
@@ -80,7 +83,12 @@ public class BookController : ControllerBase
             var error = new ErrorResult { Message = "Invalid book ID." };
             return BadRequest(error);
         }
+        
+
         var result = await _bookRepository.DeleteBook(id);
-        return (!result.IsSuccess) ? BadRequest(result) : Ok(result);
+        if (result.IsSuccess)
+            return Ok(result);
+
+        return (result.Message == $"No book found with ID: {id}") ? NotFound(result) : BadRequest(result);
     }
 }

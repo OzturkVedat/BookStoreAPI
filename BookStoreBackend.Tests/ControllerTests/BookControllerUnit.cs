@@ -42,7 +42,8 @@ namespace BookStoreBackend.Tests.ControllerTests
                 BookGenre = Genre.SciFi,
                 Price = 30
             };
-            A.CallTo(() => _fakeBookRepo.GetBookById(validId)).Returns(Task.FromResult(book));  
+            A.CallTo(() => _fakeBookRepo.GetBookById(validId))
+            .Returns(new SuccessDataResult<BookModel>("Book retrieved successfully", book));  
 
             // ACT
             var result = await _bookController.GetBookById(validId);
@@ -54,7 +55,7 @@ namespace BookStoreBackend.Tests.ControllerTests
         public async Task GetBookById_ReturnsBadReq_GivenInvalidId()
         {
             // ARRANGE
-            string invalidId = "";
+            string invalidId = " ";
 
             // ACT
             var result = await _bookController.GetBookById(invalidId);
@@ -68,7 +69,8 @@ namespace BookStoreBackend.Tests.ControllerTests
         {
             // ARRANGE
             string notExistingId = "1";
-            A.CallTo(() => _fakeBookRepo.GetBookById(notExistingId)).Returns(Task.FromResult((BookModel)null));
+            A.CallTo(() => _fakeBookRepo.GetBookById(notExistingId))
+                .Returns(new ErrorResult($"No book found with ID: {notExistingId}"));
 
             // ACT
             var result = await _bookController.GetBookById(notExistingId);
@@ -87,11 +89,11 @@ namespace BookStoreBackend.Tests.ControllerTests
              new BookModel{Id= "2", Title= "Book 2",BookGenre=Genre.Literary,Price=5},
              new BookModel{Id="3",Title="Book 3",BookGenre=Genre.Horror,Price=30},
             };
-            A.CallTo(() => _fakeBookRepo.GetAllBooks())         // mocking what the repository is returning
-                .Returns(Task.FromResult<IEnumerable<BookModel>>(books));
+            A.CallTo(() => _fakeBookRepo.GetAllBooks(1, 3))         // mocking what the repository is returning
+                .Returns(new SuccessDataResult<IEnumerable<BookModel>>("Successfully fetched the requested books.", books));
 
             // ACT
-            var result = await _bookController.GetAllBooks();
+            var result = await _bookController.GetAllBooks(1, 3);
 
             // ASSERT
             CommonAssertions.AssertOkDataResult<IEnumerable<BookModel>>(result, books);
@@ -101,21 +103,12 @@ namespace BookStoreBackend.Tests.ControllerTests
         public async Task GetAllBooks_ReturnsNotFound_WhenNoBook()
         {
             // ARRANGE
-            var booksNull= null as List<BookModel>;
-            var booksEmpty = new List<BookModel>();
+            A.CallTo(() => _fakeBookRepo.GetAllBooks(1, 3))
+                .Returns(new ErrorResult("No books found for the requested page."));
 
-
-            // ACT & ASSERT (double)
-            A.CallTo(() => _fakeBookRepo.GetAllBooks())
-                .Returns(Task.FromResult<IEnumerable<BookModel>>(booksNull));
-            var nullResult = await _bookController.GetAllBooks();
-            CommonAssertions.AssertNotFoundResult(nullResult);
-
-            A.CallTo(()=> _fakeBookRepo.GetAllBooks())
-                .Returns(Task.FromResult<IEnumerable<BookModel>>(booksEmpty));
-            var emptyResult= await _bookController.GetAllBooks();  
+            // ACT & ASSERT
+            var emptyResult= await _bookController.GetAllBooks(1, 3);  
             CommonAssertions.AssertNotFoundResult(emptyResult);
-
         }
 
         [Fact]
@@ -129,7 +122,7 @@ namespace BookStoreBackend.Tests.ControllerTests
                 BookGenre=Genre.Drama
             };
             A.CallTo(() => _fakeBookRepo.RegisterBook(bookDto))
-                .Returns(true);
+                .Returns(new SuccessResult("Book registered successfully."));
 
             // ACT
             var result = await _bookController.RegisterBook(bookDto);
@@ -160,7 +153,8 @@ namespace BookStoreBackend.Tests.ControllerTests
                 Price = 22,
                 BookGenre = Genre.Drama
             };
-            A.CallTo(() => _fakeBookRepo.UpdateBook("someExistingId", bookDto)).Returns(true);
+            A.CallTo(() => _fakeBookRepo.UpdateBook("someExistingId", bookDto))
+                .Returns(new SuccessResult("Book updated successfully."));
 
             // ACT
             var result = await _bookController.UpdateBook("someExistingId", bookDto);
@@ -187,7 +181,8 @@ namespace BookStoreBackend.Tests.ControllerTests
         {
             // ARRANGE
             string validId = "someExistingId";
-            A.CallTo(()=> _fakeBookRepo.DeleteBook(validId)).Returns(true);
+            A.CallTo(() => _fakeBookRepo.DeleteBook(validId))
+                .Returns(new SuccessResult("Book deleted successfully."));
 
             // ACT
             var result = await _bookController.DeleteBook(validId);
@@ -203,14 +198,16 @@ namespace BookStoreBackend.Tests.ControllerTests
             string invalidId = "";
 
             string notExistingId = "someNoneId";
+            A.CallTo(() => _fakeBookRepo.DeleteBook(notExistingId))
+               .Returns(new ErrorResult($"No book found with ID: {notExistingId}"));
 
-            // ACT & ASSERT
-            var invalidResult = await _bookController.DeleteBook(invalidId);
-            CommonAssertions.AssertBadRequestResult(invalidResult);
-
-            A.CallTo(() => _fakeBookRepo.DeleteBook(notExistingId)).Returns(false);
+            // ACT
+            var invalidResult = await _bookController.DeleteBook(invalidId);          
             var noneResult = await _bookController.DeleteBook(notExistingId);
-            CommonAssertions.AssertBadRequestResult(noneResult);
+
+            // ASSERT
+            CommonAssertions.AssertBadRequestResult(invalidResult);
+            CommonAssertions.AssertNotFoundResult(noneResult);
         }
     }
 }

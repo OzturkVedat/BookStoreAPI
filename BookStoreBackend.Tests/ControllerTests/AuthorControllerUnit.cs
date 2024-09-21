@@ -36,7 +36,8 @@ namespace BookStoreBackend.Tests.ControllerTests
                 Nationality = "American",
                 Biography = "American author.."
             };
-            A.CallTo(() => _fakeAuthorRepo.GetAuthorById(authorId)).Returns(Task.FromResult(expectedAuthor));
+            A.CallTo(() => _fakeAuthorRepo.GetAuthorById(authorId))
+                .Returns(new SuccessDataResult<AuthorModel>("Author details retrieved successfully.", expectedAuthor));
 
             // ACT
             var result = await _authorController.GetAuthorById(authorId);
@@ -66,7 +67,7 @@ namespace BookStoreBackend.Tests.ControllerTests
             // ARRANGE
             var authorId = "id-not-exist";
             A.CallTo(() => _fakeAuthorRepo
-            .GetAuthorById(authorId)).Returns(Task.FromResult<AuthorModel>(null));
+            .GetAuthorById(authorId)).Returns(new ErrorResult($"No author found with ID: {authorId}"));
 
             // ACT
             var result = await _authorController.GetAuthorById(authorId);
@@ -85,11 +86,11 @@ namespace BookStoreBackend.Tests.ControllerTests
                     new AuthorModel { Id= "2", FirstName = "Stephen",LastName="King", Nationality = "American", Biography = "American author.." },
                     new AuthorModel { Id= "3", FirstName= "William",LastName="Shakespeare", Nationality= "British", Biography= "British poetry.."}
                 };
-            A.CallTo(() => _fakeAuthorRepo.GetAllAuthors())
-                .Returns(Task.FromResult<IEnumerable<AuthorModel>>(authors));
+            A.CallTo(() => _fakeAuthorRepo.GetAllAuthors(1, 3))
+                .Returns(new SuccessDataResult<IEnumerable<AuthorModel>>("Successfully fetched the requested authors.", authors));
 
             // ACT
-            var result = await _authorController.GetAllAuthors();
+            var result = await _authorController.GetAllAuthors(1,3 );   // first page, fetch three authors
 
             // ASSERT
             CommonAssertions.AssertOkDataResult<IEnumerable<AuthorModel>>(result, authors);
@@ -103,19 +104,11 @@ namespace BookStoreBackend.Tests.ControllerTests
             var authorsNull = null as List<AuthorModel>;
 
             // ACT & ASSERT
-            A.CallTo(() => _fakeAuthorRepo.GetAllAuthors())
-                .Returns(Task.FromResult<IEnumerable<AuthorModel>>(authorsEmpty));
-
-            var resultEmpty = await _authorController.GetAllAuthors();
-
+            A.CallTo(() => _fakeAuthorRepo.GetAllAuthors(1, 10))
+                .Returns(new ErrorResult("No authors found for the requested page."));
+            var resultEmpty = await _authorController.GetAllAuthors(1, 10);
             CommonAssertions.AssertNotFoundResult(resultEmpty);
 
-            A.CallTo(() => _fakeAuthorRepo.GetAllAuthors())
-                .Returns(Task.FromResult<IEnumerable<AuthorModel>>(authorsNull));
-
-            var resultNull = await _authorController.GetAllAuthors();
-
-            CommonAssertions.AssertNotFoundResult(resultNull);
         }
 
         [Fact]
@@ -129,7 +122,8 @@ namespace BookStoreBackend.Tests.ControllerTests
                 Nationality = "English",
                 Biography = "English writer and philosopher..."
             };
-            A.CallTo(() => _fakeAuthorRepo.RegisterAuthor(authorDto)).Returns(true);
+            A.CallTo(() => _fakeAuthorRepo.RegisterAuthor(authorDto))
+                .Returns(new SuccessResult("Author registered successfully."));
 
             // ACT
             var fnResult = await _authorController.RegisterAuthor(authorDto);
@@ -141,13 +135,35 @@ namespace BookStoreBackend.Tests.ControllerTests
         public async Task RegisterAuthor_ReturnsBadRequest_WhenInvalidDto()
         {
             // ARRANGE
-            _authorController.ModelState.AddModelError("FullName", "Full name is required.");
+            _authorController.ModelState.AddModelError("FirstName", "First name is required.");
 
             // ACT
             var result = await _authorController.RegisterAuthor(new AuthorViewModel());
 
             // ASSERT
             CommonAssertions.AssertBadRequestDataResult(result);
+        }
+        [Fact]
+        public async Task RegisterAuthor_ReturnsBadRequest_WhenDuplicate()
+        {
+            // ARRANGE
+            var dto = new AuthorViewModel
+            {
+                FirstName = "Albert",
+                LastName = "Camus",
+                Biography = "French philosopher and author...",
+                Nationality = "French"
+            };
+            string Fullname = $"{dto.FirstName} {dto.LastName}";
+            A.CallTo(() => _fakeAuthorRepo.RegisterAuthor(dto))
+                .Returns(new ErrorResult($"Author with name {Fullname} is already registered."));
+
+            // ACT
+            var result= await _authorController.RegisterAuthor(dto);
+
+            // ASSERT
+            CommonAssertions.AssertBadRequestResult(result);
+
         }
 
         [Fact]
@@ -162,7 +178,8 @@ namespace BookStoreBackend.Tests.ControllerTests
                 Nationality = "Russia",
                 Biography = "Writer and ..."
             };
-            A.CallTo(() => _fakeAuthorRepo.UpdateAuthor(authorId, updatedDto)).Returns(true);
+            A.CallTo(() => _fakeAuthorRepo.UpdateAuthor(authorId, updatedDto))
+                .Returns(new SuccessResult("Author details updated successfully."));
 
             // ACT
             var result = await _authorController.UpdateAuthor(authorId, updatedDto);
@@ -175,19 +192,60 @@ namespace BookStoreBackend.Tests.ControllerTests
         {
             // ARRANGE
             _authorController.ModelState.AddModelError("Biography", "Biography cannot exceed 200 characters.");
+
+            // ACT
+            var result = await _authorController.UpdateAuthor("some-id", new AuthorViewModel());
+
+            // ASSERT
+            CommonAssertions.AssertBadRequestDataResult(result);
         }
         [Fact]
-        public async Task DeleteAuthor_ShouldReturnOk()
+        public async Task UpdateAuthor_ReturnsBadRequest_WhenFail()
+        {
+            // ARRANGE
+            var authorId = "1";
+            var updatedDto = new AuthorViewModel
+            {
+                FirstName = "Alexander",
+                LastName = "Pushkin",
+                Nationality = "Russia",
+                Biography = "Writer and ..."
+            };
+            A.CallTo(() => _fakeAuthorRepo.UpdateAuthor(authorId, updatedDto))
+                .Returns(new ErrorResult("Failed to update the author details."));
+
+            // ACT
+            var result = await _authorController.UpdateAuthor(authorId, updatedDto);
+
+            // ASSERT
+            CommonAssertions.AssertBadRequestResult(result);
+        }
+
+        [Fact]
+        public async Task DeleteAuthor_ShouldReturnOk_WhenRemoved()
         {
             // ARRANGE
             var authorId = "3";
-            A.CallTo(() => _fakeAuthorRepo.DeleteAuthor(authorId)).Returns(true);
+            A.CallTo(() => _fakeAuthorRepo.DeleteAuthor(authorId)).Returns(new SuccessResult("Author removed successfully."));
 
             // ACT
             var result = await _authorController.DeleteAuthor(authorId);
 
             // ASSERT
             CommonAssertions.AssertOkResult(result);
+        }
+        [Fact]
+        public async Task DeleteAuthor_ShouldReturnOk_WhenNotFound()
+        {
+            // ARRANGE
+            var authorId = "none-existing-id";
+            A.CallTo(() => _fakeAuthorRepo.DeleteAuthor(authorId)).Returns(new ErrorResult($"No author found with ID: {authorId}"));
+
+            // ACT
+            var result= await _authorController.DeleteAuthor(authorId);
+
+            // ASSERT
+            CommonAssertions.AssertNotFoundResult(result);
         }
     }
 }

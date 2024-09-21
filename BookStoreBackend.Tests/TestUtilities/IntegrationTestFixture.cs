@@ -21,7 +21,7 @@ namespace BookStoreBackend.Tests.TestUtilities
         public IntegrationTestFixture()
         {
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase(databaseName: "BookStoreTestDb")
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())   // fresh guid for every test
                 .Options;
             context = new ApplicationDbContext(options);
 
