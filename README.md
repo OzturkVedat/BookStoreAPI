@@ -2,8 +2,7 @@
 
 ## Overview
 
-A .NET Core Web API for a bookstore with a primary focus on testing functionality, including unit, integration, and end-to-end (E2E) tests.
-
+A .NET Core Web API for a bookstore 📚 with a primary focus on testing functionality 🧪, including unit, integration, and end-to-end (E2E) tests.
 
 ## Features
 
