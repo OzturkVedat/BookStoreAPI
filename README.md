@@ -69,16 +69,34 @@ The project contains unit, integration, and E2E tests. You can run them using th
 
 ```bash
 BookStoreAPI_xUnitTesting/
-│
-├── src/               # Contains the Web API source code
-│   ├── BookStoreBackend/      # Unit test project
-│   └── BookStoreBackend.Tests/
-├── tests/             # Contains all test projects
-│   ├── UnitTests/      # Unit test project
-│   ├── IntegrationTests/  # Integration test project using in-memory database
-│   └── E2ETests/       # End-to-End test project using TestContainers
-│
-└── README.md          # Project documentation
+├── BookStoreBackend/
+│       ├── Controllers/
+│       ├── Data/
+│       ├── Interfaces/        # Abstractions for repositories
+│       ├── Middleware/        # Custom middleware for global error handling
+│       ├── Migrations/        # EF Core Migration files
+│       ├── Models/
+│       ├── Repository/        # Repository pattern implementations
+|       ├── appsettings.json/  # Configuration settings
+│       └── Program.cs
+├── BookStoreBackend.Tests/
+│   ├── ControllerTests/
+│       ├── AuthorControllerE2E.cs
+│       ├── AuthorControllerUnit.cs
+│       ├── BookControllerE2E.cs
+|       └── BookControllerUnit.cs
+│   ├── RepositoryTests/
+│       ├── AuthorRepositoryIntegration.cs
+|       └── BookRepositoryIntegration.cs
+│   └── TestUtilities/
+│       ├── CommonAssertions.cs            # Reusable assertion methods
+│       ├── E2ETestBase.cs                 # Base setup for E2E tests
+│       ├── E2ETestDbFactory.cs            # Factory for TestContainers
+|       └── IntegrationTestFixture.cs      # Setup/teardown for integration tests
+├── .gitignore
+├── .BookStoreBackend.sln
+└── README.md         # Project documentation
+
 ```
 
 ## Testing Strategies
