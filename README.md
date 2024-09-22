@@ -77,22 +77,22 @@ BookStoreAPI_xUnitTesting/
 │       ├── Migrations/        # EF Core Migration files
 │       ├── Models/
 │       ├── Repository/        # Repository pattern implementations
-|       ├── appsettings.json/  # Configuration settings
+│       ├── appsettings.json/  # Configuration settings
 │       └── Program.cs
 ├── BookStoreBackend.Tests/
 │   ├── ControllerTests/
 │       ├── AuthorControllerE2E.cs
 │       ├── AuthorControllerUnit.cs
 │       ├── BookControllerE2E.cs
-|       └── BookControllerUnit.cs
+│       └── BookControllerUnit.cs
 │   ├── RepositoryTests/
 │       ├── AuthorRepositoryIntegration.cs
-|       └── BookRepositoryIntegration.cs
+│       └── BookRepositoryIntegration.cs
 │   └── TestUtilities/
 │       ├── CommonAssertions.cs            # Reusable assertion methods
 │       ├── E2ETestBase.cs                 # Base setup for E2E tests
 │       ├── E2ETestDbFactory.cs            # Factory for TestContainers
-|       └── IntegrationTestFixture.cs      # Setup/teardown for integration tests
+│       └── IntegrationTestFixture.cs      # Setup/teardown for integration tests
 ├── .gitignore
 ├── .BookStoreBackend.sln
 └── README.md         # Project documentation
