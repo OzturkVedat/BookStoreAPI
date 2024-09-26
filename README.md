@@ -51,12 +51,12 @@ A .NET Core Web API for a bookstore 📚 with a primary focus on testing functio
     dotnet build
     ```
     
-5. Set up database:
+4. Set up database:
      ```bash
     dotnet ef database update
     ```
      
-4. Run the API:
+5. Run the API:
 
     ```bash
     dotnet run --project ./src/BookStoreBackend
