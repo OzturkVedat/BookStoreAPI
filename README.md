@@ -1,3 +1,5 @@
+[xUnit](https://xunit.net/images/full-logo.svg)
+
 # BookStoreAPI_xUnitTesting
 
 ## Overview
@@ -64,6 +66,8 @@ A .NET Core Web API for a bookstore 📚 with a primary focus on testing functio
 ### Running Tests
 
 The project contains unit, integration, and E2E tests. You can run them using the .NET CLI, or more practically, you can run them on Visual Studio's test explorer.
+
+![TestSS](./assets/test_exp.png)
 
 ### Project Structure
 
