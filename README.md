@@ -1,7 +1,4 @@
-![xUnit]([https://xunit.net/images/full-logo.svg](https://avatars.githubusercontent.com/u/2092016?s=280&v=4))
-![FluentAssertions](https://img.stackshare.io/service/9589/D8hnweSXkAAw1Wd.png)
-![FakeItEasy](https://avatars.githubusercontent.com/u/1713521?s=200&v=4)
-![TestContainers](https://avatars.githubusercontent.com/u/13393021?s=280&v=4)
+![xUnit](https://xunit.net/images/full-logo.svg)
 
 # BookStoreAPI_xUnitTesting
 
