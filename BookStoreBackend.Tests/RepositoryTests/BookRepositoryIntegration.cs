@@ -155,8 +155,7 @@ namespace BookStoreBackend.Tests.RepositoryTests
             var result= await _bookRepository.RegisterBook(duplicateBook);
 
             // ASSERT
-            var errorResult = result as ErrorResult;
-            errorResult.Should().NotBeNull();       // means casting is succeed
+            result.IsSuccess.Should().BeFalse();       
         }
 
         [Fact]
@@ -195,7 +194,7 @@ namespace BookStoreBackend.Tests.RepositoryTests
         public async Task DeleteBook_ShouldRemove_WhenExists()
         {
             // ARRANGE
-            var books = await _bookRepository.GetBooksByTitle("Martin Eden");
+            var books = await _bookRepository.GetBooksByTitle("The Adventures of Tom Sawyer");
             var booksResult= books as SuccessDataResult<IEnumerable<BookModel>>;
             var registeredBook = booksResult.Data.FirstOrDefault();
 
