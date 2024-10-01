@@ -1,7 +1,5 @@
 ![xUnit](https://xunit.net/images/full-logo.svg)
 
-
-
 # BookStoreAPI_xUnitTesting
 
 ## Overview
@@ -56,15 +54,22 @@ A .NET Core Web API for a bookstore 📚 with a primary focus on testing functio
     ```
     
 4. Set up database:
+   Create a local database, MSSQL container, etc to connect the API. Modify the connection string in appsettings.json.
+   To apply migrations:
      ```bash
     dotnet ef database update
     ```
+    To create migrations(if there's none for current db schema):
+     ```bash
+    dotnet ef migrations add <migration-name>
+    ```
      
-5. Run the API:
+6. Run the API:
 
     ```bash
     dotnet run --project ./src/BookStoreBackend
     ```
+    
 ### Running Tests
 
 The project contains unit, integration, and E2E tests. You can run them using the .NET CLI, or more practically, you can run them on Visual Studio's test explorer like this:
