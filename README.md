@@ -59,7 +59,7 @@ A .NET Core Web API for a bookstore 📚 with a primary focus on testing functio
      ```bash
     dotnet ef database update
     ```
-    To create migrations(if there's none for current db schema):
+    To create migrations (if there's none for current db schema):
      ```bash
     dotnet ef migrations add <migration-name>
     ```
